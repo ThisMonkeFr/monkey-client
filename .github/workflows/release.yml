@@ -4,8 +4,7 @@
 # macOS installers can only be produced on a Mac, so this runs the build on
 # GitHub's macOS runners rather than your PC. Free for public repositories.
 #
-# To cut a release: bump "version" in package.json, commit, then run
-#   git tag v0.3.2 && git push origin v0.3.2
+# Run it from the Actions tab (Run workflow), or push a version tag.
 name: Release
 
 on:
@@ -22,12 +21,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
+      # No npm cache here on purpose: caching needs a package-lock.json in the
+      # repo, and its absence fails the whole job before anything is built.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - run: npm ci || npm install
+      - name: Install dependencies
+        run: npm install
 
       - name: Build and publish
         run: npx electron-builder --publish always
