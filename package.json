@@ -1,0 +1,63 @@
+{
+  "name": "monkey-client",
+  "version": "0.3.7",
+  "description": "Monkey Client — a jungle-themed Minecraft launcher",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "release": "electron-builder --publish always"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "gg.monkeyclient.launcher",
+    "productName": "Monkey Client",
+    "files": [
+      "electron/**/*",
+      "renderer/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.games",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ThisMonkeFr",
+        "repo": "monkey-client"
+      }
+    ],
+    "dmg": {
+      "writeUpdateInfo": true
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Monkey Client",
+      "allowToChangeInstallationDirectory": false
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "extract-zip": "^2.0.1",
+    "ws": "^8.18.0"
+  }
+}
