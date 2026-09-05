@@ -1,6 +1,6 @@
 # Monkey Client
 
-A personal, non-commercial Minecraft: Java Edition launcher with a jungle theme.
+A personal, Minecraft: Java Edition launcher.
 Built with Electron.
 
 ## What it does
@@ -24,5 +24,4 @@ that do not own Java Edition are rejected.
 
 ## Status
 
-In development. Launcher UI, profiles, mod installation and account sign-in are
-implemented. Game launching is next.
+In development.
