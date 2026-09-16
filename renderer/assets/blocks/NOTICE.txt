@@ -1,0 +1,1 @@
+Minecraft 26.2 block textures extracted unchanged from the user's Minecraft client assets. Texture artwork is copyright Mojang AB / Microsoft. Not an official Minecraft product. The launcher code license does not apply to these assets.
