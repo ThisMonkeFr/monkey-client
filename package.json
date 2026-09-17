@@ -1,7 +1,7 @@
 {
   "name": "monkey-client",
-  "version": "0.6.0",
-  "description": "Monkey Client — a jungle-themed Minecraft launcher",
+  "version": "0.7.0",
+  "description": "A Minecraft launcher with a vanilla interface and integrated client modules",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
@@ -20,7 +20,8 @@
       "electron/**/*",
       "renderer/**/*",
       "bundled/**/*",
-      "build/icon.*"
+      "build/icon.*",
+      "THIRD-PARTY-NOTICES.md"
     ],
     "win": {
       "target": "nsis",

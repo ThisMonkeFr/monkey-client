@@ -53,7 +53,7 @@ async function prepare(profile, account, onProgress) {
     classpath_separator: SEP,
     library_directory: shared('libraries'),
     auth_player_name: account.name,
-    version_name: version.id,
+    version_name: resolved.id||version.id,
     game_directory: gameDir,
     assets_root: shared('assets'),
     assets_index_name: built.assetIndex,
@@ -122,7 +122,7 @@ async function launch(profile, account, onProgress, onEvent) {
     `gameDir   ${gameDir}`,
     ``,
     `command:`,
-    `${javaBin} ${args.join(' ')}`,
+    `${javaBin} ${args.map((arg,i)=>args[i-1]==='--accessToken'?'[redacted]':arg).join(' ')}`,
     ``,
     `--- game output ---`, ``
   ].join('\n');

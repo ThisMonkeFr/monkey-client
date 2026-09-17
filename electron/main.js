@@ -259,6 +259,7 @@ let logBuf = [];                      // last lines of Minecraft output
 const LOG_MAX = 400;
 
 ipcMain.handle('game:launch', async (_e, profile) => {
+  if(profileService.isBusy(profile.id))return {ok:false,message:'This profile is changing versions. Wait for the update to finish.'};
   if (running) return { ok: false, message: 'Minecraft is already running.' };
   if (!account()) return { ok: false, message: 'Sign in before launching.' };
   try {
@@ -266,7 +267,7 @@ ipcMain.handle('game:launch', async (_e, profile) => {
     const token = await liveToken(selectedAccount.uuid);
     logBuf = [];
     await mods.sync(profile, p => send('game:progress', p));
-    if(profile.loader==='fabric'&&profile.version==='26.2') {
+    if(profile.loader==='fabric'||profile.loader==='forge') {
       const state=await store.loadData();
       const dir=profile.settings.gameDir||require('./game/io').instance(profile.id);
       await require('./game/cosmetics').sync(dir,state,selectedAccount.uuid,png=>{
@@ -301,6 +302,7 @@ ipcMain.handle('game:launch', async (_e, profile) => {
       }
     );
     running.profile = profile.name;
+    running.profileId = profile.id;
     running.startedAt = started;
     saveInstances();
     return { ok: true };
@@ -359,6 +361,15 @@ ipcMain.handle('mods:download', withProfile(({ profile, mod }) => mods.download(
 ipcMain.handle('mods:remove', withProfile(({ profile, fileName }) => mods.remove(profile, fileName)));
 ipcMain.handle('mods:enabled', withProfile(({ profile, fileName, enabled }) => mods.setEnabled(profile, fileName, enabled)));
 ipcMain.handle('mods:folder', withProfile(({ profile }) => mods.openFolder(profile)));
+const profileService=require('./game/profiles').createProfileService({
+  io:require('./game/io'),store,
+  installManaged:(profile,progress)=>require('./game/clientmod').ensure(profile,progress),
+  isRunning:id=>!!running&&running.profileId===id
+});
+ipcMain.handle('profiles:versions',()=>require('./game/versions').releases);
+ipcMain.handle('profiles:inherit',withProfile(({sourceId,profile})=>profileService.inherit(sourceId,profile)));
+ipcMain.handle('profiles:plan-version',withProfile(({id,version,loader})=>profileService.plan(id,version,loader)));
+ipcMain.handle('profiles:apply-version',withProfile(({token,choices})=>profileService.apply(token,choices,p=>send('profiles:progress',p))));
 
 ipcMain.handle('store:load', () => store.loadData());
 ipcMain.handle('store:save', (_e, obj) => store.saveData(obj));

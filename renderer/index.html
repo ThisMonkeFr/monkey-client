@@ -562,11 +562,11 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
   border-color var(--t1) linear,filter var(--t1) linear}
 .ed-toolbar button:hover{transform:translateY(-2px)}
 .ed-swatches button:hover{transform:scale(1.16)}
-</style><link rel="stylesheet" href="theme-polish.css">
+</style><link rel="stylesheet" href="theme-polish.css"><link rel="stylesheet" href="vanilla.css">
 
 <div id="app">
   <header class="tb">
-    <div class="title">Monkey Client <i>0.6.0</i></div>
+    <div class="title">Monkey Client <i>0.7.0</i></div>
     <div class="grow"></div>
     <div id="tbright" class="row"></div>
     <div class="wc">
@@ -589,11 +589,11 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
       <button class="tool stone" data-act="website" title="Project page">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="square" stroke-linejoin="round"><path d="M13.5 3.5 5 13h5l-1.5 7.5L18 11h-5z"/><circle cx="12" cy="12" r="9.2" stroke-dasharray="3.5 3"/></svg></button>
     </div>
-    <div class="foot"><b>Monkey Client 0.6.0</b>Stay wild.</div>
+    <div class="foot"><b>Monkey Client 0.7.0</b></div>
   </nav>
 
   <div class="main">
-
+    <div class="workspace-background" aria-hidden="true"><canvas id="bgfx"></canvas></div>
     <main class="view" id="view"></main>
   </div>
 </div>
@@ -604,6 +604,7 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
 <script src="blocks.js"></script>
 <script src="profile-icons.js"></script>
 <script src="backgrounds.js"></script>
+<script src="backgrounds-vanilla.js"></script>
 <script>
 /* ============================================================
    Monkey Client — renderer
@@ -622,8 +623,9 @@ const S = {
   accounts:[], instances:[], launching:null, running:false, instances:[], pickerOpen:false
 };
 
-const VERSIONS = ['26.2','1.21.11'];
-const LOADERS  = ['vanilla','fabric'];
+const VERSIONS = ['26.3','26.2','26.1.2','26.1.1','26.1','1.21.11','1.21.10','1.21.9'];
+const LOADERS  = ['vanilla','fabric','forge'];
+const loadersFor=version=>LOADERS.filter(loader=>loader!=='forge'||version&&version!=='26.3');
 const PROFILE_ICONS=createProfileIcons(S,value=>esc(value),MonkeyModel);
 const iconChoices=()=>PROFILE_ICONS.choices();
 const blockSvg=(id,size=26)=>PROFILE_ICONS.html(id,size);
@@ -635,7 +637,7 @@ const LOGO_IMG = new Image(); LOGO_IMG.src = LOGO_SRC;
 const FONTS = [
   ['system','System default'],
   ['inter','Inter (clean sans)'],
-  ['pixel','Minecraft style'],
+  ['pixel','Minecraft (default)'],
   ['mono','Monospace'],
   ['serif','Serif'],
   ['rounded','Rounded']
@@ -643,13 +645,13 @@ const FONTS = [
 const FONT_STACKS = {
   system:'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
   inter:'Inter,system-ui,sans-serif',
-  pixel:"'Silkscreen',ui-monospace,monospace",
+  pixel:"MinecraftUI,ui-monospace,monospace",
   mono:'ui-monospace,"SF Mono",Menlo,Consolas,monospace',
   serif:'Georgia,"Times New Roman",serif',
   rounded:'"Segoe UI Variable Display","Nunito",system-ui,sans-serif'
 };
 function applyFont(){
-  const f = S.font || {key:'system'};
+  const f = S.font || {key:'pixel'};
   let stack = FONT_STACKS[f.key] || FONT_STACKS.system;
   if(f.key==='custom' && f.data){
     let tag=document.getElementById('customfont');
@@ -907,7 +909,7 @@ function openModal(html, opts={}){
   if(f) setTimeout(()=>f.focus(),40);
   return scrim;
 }
-function closeModal(){ $('#modal').innerHTML=''; modalKey=null;
+function closeModal(){ if(modalKey==='version-change'&&versionChange?.busy)return;$('#modal').innerHTML=''; modalKey=null;
   if(modalCleanup){ modalCleanup(); modalCleanup=null; } }
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){ if($('#modal').firstChild) closeModal(); else if(S.pickerOpen){ S.pickerOpen=false; render(); } }
@@ -1286,6 +1288,7 @@ const FX = {
 };
 
 installBackgrounds(FX);
+installVanillaBackgrounds(FX);
 FX.random = { label:'Random', still:false, draw(){} };   // resolved per visit
 
 const BG_EFFECTS = Object.entries(FX).map(([k,v])=>[k, v.label]);
@@ -1301,7 +1304,7 @@ const fxControls = k => (FX[k] && FX[k].still) ? (k==='image'?['size','blur']:['
                                                : ['speed','blur','animate'];
 
 const BG = { raf:null, state:null, kind:null, w:0, h:0 };
-const bgCfg = () => Object.assign({effect:((S.theme||PRESETS.jungle).effect||'aurora'), animate:true, speed:1, blur:0, size:100}, S.bgfx||{});
+const bgCfg = () => {const cfg=Object.assign({effect:((S.theme||PRESETS.jungle).effect||'aurora'), animate:true, speed:1, blur:0, size:100}, S.bgfx||{});if(cfg.effect==='dna')cfg.effect='rift';return cfg;};
 
 function bgFrame(dt){
   const cv=document.getElementById('bgfx'); if(!cv) return;
@@ -1323,6 +1326,7 @@ function bgFrame(dt){
 
 function bgAttach(){
   const cv=document.getElementById('bgfx'); if(!cv) return;
+  applyBackgroundNow();
   const fit=()=>{ const p=cv.parentElement; if(!p) return;
     cv.width=Math.max(320,p.clientWidth); cv.height=Math.max(200,p.clientHeight); };
   fit();
@@ -1332,7 +1336,7 @@ function bgAttach(){
       const dt=Math.min(.05,(now-prev)/1000); prev=now;
       const c=document.getElementById('bgfx');
       if(c){
-        if(c.parentElement && c.width!==Math.max(320,c.parentElement.clientWidth)) fit();
+        if(c.parentElement && (c.width!==Math.max(320,c.parentElement.clientWidth)||c.height!==Math.max(200,c.parentElement.clientHeight))) fit();
         if(!document.hidden&&now-(BG.lastPaint||0)>33){
           const elapsed=Math.min(.1,(now-(BG.lastPaint||now))/1000);BG.lastPaint=now;
           bgFrame(bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches?elapsed:0);
@@ -1393,12 +1397,6 @@ function pagePlay(){
 
   return `<div class="play">
     <div class="hero">
-      ${bgCfg().effect==='image' && S.bg && S.bg.data ? `<div class="bgimg" style="
-        background-image:url('${esc(S.bg.data)}');
-        filter:blur(${bgCfg().blur}px);
-        background-size:${bgCfg().size}% auto;"></div>` : ''}
-      <canvas id="bgfx" class="bgfx" style="filter:blur(${bgCfg().blur}px)"></canvas>
-      <div class="scrim"></div>
       <div class="stage">
         <div class="skinbox">${stage}</div>
         ${S.running
@@ -1432,9 +1430,9 @@ function pagePlay(){
 
     <div class="cards">
       <div class="card2 stone">
-        <h4>Monkey Client updates <span class="badge">0.6.0</span></h4>
-        <p>22 integrated modules for Fabric 26.2. Vanilla HUD styling, editable controls,
-           custom capes, and matching launcher and in-game themes.</p>
+        <h4>Monkey Client updates <span class="badge">0.7.0</span></h4>
+        <p>A familiar vanilla interface, saved mod profiles, new backgrounds,
+           and your settings wherever you play.</p>
         <time>Latest release</time>
       </div>
       <div class="card2 stone">
@@ -1545,6 +1543,7 @@ function pageProfiles(){
   let list = S.profiles.filter(p=>{
     if(pFilter==='fabric' && p.loader!=='fabric') return false;
     if(pFilter==='vanilla' && p.loader!=='vanilla') return false;
+    if(pFilter==='forge' && p.loader!=='forge') return false;
     if(pFilter==='pinned' && !p.pinned) return false;
     return !pQuery || p.name.toLowerCase().includes(pQuery.toLowerCase());
   }).sort((a,b)=> (b.pinned?1:0)-(a.pinned?1:0) || (b.lastPlayed||0)-(a.lastPlayed||0));
@@ -1552,7 +1551,7 @@ function pageProfiles(){
   const top = `<div class="h1">Profiles</div>
    <div class="sub">Each profile keeps its own mods, saves and settings.</div>
    <div class="bartop">
-    <div class="seg">${[['all','All'],['vanilla','Vanilla'],['fabric','Fabric'],['pinned','Pinned']]
+    <div class="seg">${[['all','All'],['vanilla','Vanilla'],['fabric','Fabric'],['forge','Forge'],['pinned','Pinned']]
       .map(([k,l])=>`<button data-act="pfilter" data-k="${k}" class="${pFilter===k?'on':'stone'}">${l}</button>`).join('')}</div>
     <div class="search">${svg('search',15)}<input id="pq" placeholder="Search profiles" value="${esc(pQuery)}"></div>
     <button class="btn pri" data-act="new-profile">${svg('plus',15)}New profile</button>
@@ -1589,6 +1588,7 @@ function pageProfiles(){
 }
 
 function newProfileModal(step={v:'',l:'',n:'',i:'grass'}){
+  if(step.l&&!loadersFor(step.v).includes(step.l))step.l='';
   const canSave = step.v && step.l && step.n.trim();
   openModal(`<div class="modal" style="max-width:560px">
     <div class="mh">${svg('plus',18)}<h3>New profile</h3>
@@ -1597,11 +1597,12 @@ function newProfileModal(step={v:'',l:'',n:'',i:'grass'}){
       <div class="field"><label>Minecraft version</label><div class="picker">
         ${VERSIONS.map(v=>`<button data-act="np-v" data-v="${v}" class="${step.v===v?'on':''}">
           <b style="display:block;color:var(--tx);font-size:14px" class="num">${v}</b>
-          <span style="font-size:11.5px">${v==='26.2'?'Latest release':'Stable'}</span></button>`).join('')}</div></div>
+          <span style="font-size:11.5px">${v===VERSIONS[0]?'Latest release':'Stable'}</span></button>`).join('')}</div></div>
       <div class="field"><label>Mod loader</label><div class="picker">
-        ${LOADERS.map(l=>`<button data-act="np-l" data-l="${l}" class="${step.l===l?'on':''}">
+        ${loadersFor(step.v).map(l=>`<button data-act="np-l" data-l="${l}" class="${step.l===l?'on':''}">
           <b style="display:block;color:var(--tx);font-size:14px">${cap(l)}</b>
-          <span style="font-size:11.5px">${l==='fabric'?'Mods supported':'No mods'}</span></button>`).join('')}</div></div>
+          <span style="font-size:11.5px">${l!=='vanilla'?'Mods supported':'No mods'}</span></button>`).join('')}</div>${step.v==='26.3'?'<p class="hint">Forge has not released a 26.3 build yet.</p>':''}</div>
+      ${sel()?`<p class="hint">Copies options, resource packs and shader packs from ${esc(sel().name)}.</p>`:''}
       <div class="field"><label for="npn">Profile name</label>
         <input type="text" id="npn" value="${esc(step.n)}" placeholder="Jungle SMP" autocomplete="off"></div>
       <div class="field"><label>Icon</label><div class="picker icons">
@@ -1615,13 +1616,18 @@ function newProfileModal(step={v:'',l:'',n:'',i:'grass'}){
     $('[data-act="np-save"]').disabled = !(step.v && step.l && step.n.trim()); };
   window.__np = step;
 }
-function createProfile(s){
+async function createProfile(s){
+  const sourceId=S.selId;
   const p = { id:uid(), name:s.n.trim(), icon:s.i, version:s.v, loader:s.l,
     lastPlayed:null, pinned:false, mods:[],
     settings:{ ram:4096, customJava:false, javaPath:'', customArgs:false,
       javaArgs:'-XX:+UseG1GC -XX:+ParallelRefProcEnabled', width:1280, height:720,
       fullscreen:false, gameDir:'', notes:'', closeOnLaunch:true } };
-  S.profiles.push(p); S.selId=p.id; save(); closeModal(); render(); toast(`Created ${p.name}`);
+  const button=$('[data-act="np-save"]');if(button){button.disabled=true;button.textContent='Copying settings…';}
+  try{
+    if(DESKTOP){await save();const result=await window.monkey.profiles.inherit(sourceId,plain(p));if(!result.ok)throw Error(result.message);}
+    S.profiles.push(p);S.selId=p.id;await save();closeModal();render();toast(`Created ${p.name}`);
+  }catch(error){toast(error.message,'err');if(button){button.disabled=false;button.textContent='Create profile';}}
 }
 
 /* ============================================================
@@ -1651,11 +1657,9 @@ function settingsModal(id){
     <button class="btn dang" data-act="s-delete">${svg('trash',15)}Delete this profile</button>`;
 
   if(setTab==='install') body=`
-    <div class="field"><label for="sv">Minecraft version</label>
-      <select id="sv" data-act="s-version">${VERSIONS.map(v=>`<option ${p.version===v?'selected':''}>${v}</option>`).join('')}</select>
-      <p class="hint">Changing this rechecks every installed mod for compatibility.</p></div>
-    <div class="field"><label for="sl">Mod loader</label>
-      <select id="sl" data-act="s-loader">${LOADERS.map(l=>`<option value="${l}" ${p.loader===l?'selected':''}>${cap(l)}</option>`).join('')}</select></div>
+    <div class="field"><label>Minecraft version</label><p>${p.version} · ${cap(p.loader)}</p>
+      <button class="btn" data-act="change-version">Change version…</button>
+      <p class="hint">Updates every installed mod and lets you disable or delete incompatible mods together.</p></div>
     <div class="field"><label for="sdir">Game directory</label>
       <input type="text" id="sdir" value="${esc(s.gameDir)}" placeholder="Default (isolated per profile)">
       <p class="hint">Leave empty to keep saves, mods and config separate from other profiles.</p></div>`;
@@ -1689,19 +1693,18 @@ function settingsModal(id){
       <span>Hide the launcher while the game is running</span></label>`;
 
   if(setTab==='monkey') body=`
-    ${p.loader==='fabric' ? `
+    ${p.loader!=='vanilla' ? `
       <label class="check"><input type="checkbox" data-act="s-clientmod"
         ${s.clientMod===false?'':'checked'}>
         <span>Install the Monkey Client mod in this profile</span></label>
       <p class="hint" style="margin:0 0 14px 28px">
-        The launcher downloads the newest build before each launch, along with
-        Fabric API, and keeps it up to date. Hold Right Shift in game for one
-        second to open the client menu.</p>
+        The launcher installs the Monkey Client build made for this Minecraft
+        version and loader. Hold Right Shift in game to open the client menu.</p>
       <div class="note">${svg('info',16)}<div>
-        Turn this off if you want a completely vanilla-feeling Fabric profile.
+        Turn this off if you want a profile without the integrated client modules.
         Your own mods are untouched either way.</div></div>`
     : `<div class="note warn">${svg('info',16)}<div>
-        The Monkey Client mod needs Fabric. Switch this profile's loader on the
+        The Monkey Client mod needs Fabric or Forge. Switch this profile's loader on the
         Installation tab to use it.</div></div>`}`;
 
   if(setTab==='advanced') body=`
@@ -1731,6 +1734,39 @@ function saveSettings(){
   if(g('sw')!==null) p.settings.width=Math.max(320,parseInt(g('sw'))||1280);
   if(g('sh')!==null) p.settings.height=Math.max(240,parseInt(g('sh'))||720);
   save(); closeModal(); render(); toast('Settings saved');
+}
+
+let versionChange=null;
+function versionModal(id){
+  const p=S.profiles.find(p=>p.id===id);if(!p)return;
+  if(!versionChange||versionChange.id!==id)versionChange={id,version:p.version,loader:p.loader,plan:null,choices:{},busy:false};
+  const v=versionChange;
+  if(!loadersFor(v.version).includes(v.loader))v.loader='fabric';
+  const rows=v.plan?.incompatible||[];
+  openModal(`<div class="modal" style="max-width:710px"><div class="mh"><h3>Change version · ${esc(p.name)}</h3>${v.busy?'':'<button class="btn ghost" data-act="version-cancel">'+svg('x',16)+'</button>'}</div>
+    <div class="mb">
+    ${v.busy?'<p id="version-progress">Checking installed mods…</p>':v.plan?`
+      <p>${rows.length} mod${rows.length===1?'':'s'} cannot run on ${v.version} · ${cap(v.loader)}.</p>
+      <div class="row" style="gap:8px;margin:14px 0"><button class="btn" data-act="version-all" data-choice="disable">Disable all</button><button class="btn dang" data-act="version-all" data-choice="delete">Delete all</button></div>
+      ${rows.map(row=>`<div class="version-conflict"><div><b>${esc(row.title)}</b><small>${esc(row.reason)}</small></div><select aria-label="Action for ${esc(row.title)}" data-act="version-choice" data-key="${esc(row.key)}"><option value="disable" ${v.choices[row.key]==='disable'?'selected':''}>Disable</option><option value="delete" ${v.choices[row.key]==='delete'?'selected':''}>Delete</option></select></div>`).join('')}
+      <p class="hint">${v.plan.updates.length} compatible mod${v.plan.updates.length===1?'':'s'} will update automatically. Replaced files are saved in this profile’s backups folder.</p>`:`
+      <div class="field"><label for="version-target">Minecraft version</label><select id="version-target" data-act="version-target">${VERSIONS.map(id=>`<option value="${id}" ${v.version===id?'selected':''}>${id}</option>`).join('')}</select></div>
+      <div class="field"><label for="version-loader">Mod loader</label><select id="version-loader" data-act="version-loader">${loadersFor(v.version).map(loader=>`<option value="${loader}" ${v.loader===loader?'selected':''}>${cap(loader)}</option>`).join('')}</select></div>
+      ${v.version==='26.3'?'<p class="hint">Forge has not released a 26.3 build yet.</p>':''}
+      <p class="hint">Your installed mods will be checked and updated for this version.</p>`}
+    </div><div class="mf">${v.busy?'':`<button class="btn" data-act="version-cancel">Cancel</button><button class="btn pri" data-act="${v.plan?'version-apply':'version-check'}">Change version</button>`}</div></div>`,{key:'version-change'});
+}
+async function checkVersionChange(){
+  const v=versionChange;if(!v||v.busy)return;
+  if(!DESKTOP){toast('Version changes run in the desktop launcher.','info');return;}
+  v.busy=true;versionModal(v.id);
+  try{await save();const result=await window.monkey.profiles.planVersion(v.id,v.version,v.loader);if(!result.ok)throw Error(result.message);v.plan=result.data;v.choices=Object.fromEntries(v.plan.incompatible.map(row=>[row.key,'disable']));v.busy=false;if(!v.plan.incompatible.length)return applyVersionChange();versionModal(v.id);}
+  catch(error){v.busy=false;toast(error.message,'err');versionModal(v.id);}
+}
+async function applyVersionChange(){
+  const v=versionChange;if(!v||v.busy||!v.plan)return;v.busy=true;versionModal(v.id);
+  try{const result=await window.monkey.profiles.applyVersion(v.plan.token,v.choices);if(!result.ok)throw Error(result.message);const index=S.profiles.findIndex(p=>p.id===v.id);if(index>=0)S.profiles[index]=result.data.profile;await save();versionChange=null;closeModal();render();toast('Version changed to '+v.version+'. Mods updated.');}
+  catch(error){v.busy=false;v.plan=null;toast(error.message,'err');versionModal(v.id);}
 }
 
 /* ============================================================
@@ -1771,7 +1807,7 @@ async function installMod(pid){
   if(!p){ toast('Select a profile first','err'); S.tab='profiles'; render(); return; }
   const hit = S.modResults.find(h=>h.project_id===pid); if(!hit) return;
   if(p.loader==='vanilla' && S.modTab==='mod'){
-    toast(`${p.name} is Vanilla — switch it to Fabric to install mods`,'err'); return; }
+    toast(`${p.name} is Vanilla — switch it to Fabric or Forge to install mods`,'err'); return; }
   if(p.mods.some(m=>m.projectId===pid)){ toast('Already installed on this profile','info'); return; }
   toast(`Resolving ${hit.title}…`,'info');
   try{
@@ -1818,7 +1854,7 @@ function pageInstalledMods(){
   if(!p.mods.length && p.loader!=='fabric') return `<div class="page">${modsHeader(p)}<div class="empty">
     <div class="ill">${svg('mods',70)}</div><h3>${esc(p.name)} has no mods</h3>
     <p>${p.loader==='vanilla'
-      ? 'This is a Vanilla profile. Switch it to Fabric in profile settings to install mods.'
+      ? 'This is a Vanilla profile. Switch it to Fabric or Forge in profile settings to install mods.'
       : 'Search Modrinth and install straight into this profile.'}</p>
     <button class="btn pri" data-act="modscope" data-k="browse">${svg('search',15)}Find mods</button></div></div>`;
 
@@ -1996,7 +2032,7 @@ function pageSkins(){
       <button class="btn pri" data-act="new-cape">${svg('edit',15)}Create cape</button></div>
     <div class="note warn" style="margin-bottom:16px">${svg('info',16)}<div>
       Mojang only lets an account wear capes it already owns — no API accepts a custom one.
-      Capes added here are Monkey Client cosmetics: your selected cape is installed into the Fabric 26.2 profile
+      Capes added here are Monkey Client cosmetics: your selected cape is installed into your selected Fabric or Forge profile
       and rendered locally with vanilla cape movement.</div></div>
     <div class="grid">
       <div class="scard add" data-act="upload-cape" style="min-height:206px">
@@ -2286,7 +2322,7 @@ function bgPrevAttach(){
    settings dialog straight away, with no tab switch needed. */
 function applyBackgroundNow(){
   const cfg=bgCfg();
-  const hero=document.querySelector('.hero');
+  const hero=document.querySelector('.workspace-background');
   if(!hero) return;
   let layer=hero.querySelector('.bgimg');
   const wantImage = cfg.effect==='image' && S.bg && S.bg.data;
@@ -2363,7 +2399,7 @@ function launcherSettings(){
       <div class="preset-save row" style="gap:8px;margin-top:12px"><input id="theme-preset-name" type="text" maxlength="40" placeholder="Name your theme" aria-label="Theme preset name"><button class="btn" data-act="theme-save">Save theme</button></div>
       <div class="saved-presets">        ${(S.themePresets||[]).map(p=>`<div class="saved-preset"><button class="btn" data-act="theme-load" data-id="${esc(p.id)}"><i style="background:${esc(p.theme.accent)}"></i>${esc(p.name)}</button><button class="btn ghost" data-act="theme-delete" data-id="${esc(p.id)}" aria-label="Delete ${esc(p.name)}">${svg('trash',13)}</button></div>`).join('')}
       </div>
-      <div class="h5">Play background</div>
+      <div class="h5">Background · all tabs</div>
       <div class="fxgrid">
         ${BG_EFFECTS.map(([k,label])=>`
           <button class="fxcard stone ${fx.effect===k?'on':''}" data-act="fx-effect" data-k="${k}">
@@ -2375,7 +2411,7 @@ function launcherSettings(){
       <div class="h5">Interface</div>
       <div class="field"><label for="fontsel">Font</label>
         <select id="fontsel" data-act="ui-font">
-          ${FONTS.map(([k,label])=>`<option value="${k}" ${(S.font&&S.font.key)===k?'selected':''}>${label}</option>`).join('')}
+          ${FONTS.map(([k,label])=>`<option value="${k}" ${(S.font?.key||'pixel')===k?'selected':''}>${label}</option>`).join('')}
           ${S.font&&S.font.key==='custom'?`<option value="custom" selected>${esc(S.font.name||'Custom font')}</option>`:''}
         </select></div>
       <button class="btn" data-act="font-pick">${svg('font',15)}Load a font file</button>
@@ -2580,7 +2616,8 @@ function render(){
   }
   lastHtml=html;
   if(S.tab==='skins') hydrateSkins();
-  if(S.tab==='play'){ spinAttach(); bgAttach(); }
+  if(S.tab==='play') spinAttach();
+  bgAttach();
   const m=$('#msgs'); if(m) m.scrollTop=m.scrollHeight;
   const pq=$('#pq'); if(pq) pq.oninput = e=>{ pQuery=e.target.value; render(); $('#pq').focus(); };
   const mq=$('#mq'); if(mq){ mq.oninput=e=>{S.modQuery=e.target.value;};
@@ -2690,7 +2727,7 @@ document.addEventListener('click', async e => {
     case 'np-v': window.__np.v=t.dataset.v; newProfileModal(window.__np); break;
     case 'np-l': window.__np.l=t.dataset.l; newProfileModal(window.__np); break;
     case 'np-i': window.__np.i=t.dataset.i; newProfileModal(window.__np); break;
-    case 'np-save': createProfile(window.__np); break;
+    case 'np-save': await createProfile(window.__np); break;
     case 'select-profile': {
       S.selId=id; save();
       document.querySelectorAll('.prow[data-pid]').forEach(row=>{
@@ -2714,6 +2751,11 @@ document.addEventListener('click', async e => {
         b.classList.toggle('on', b.dataset.i===t.dataset.i));
       break; }
     case 's-save': saveSettings(); break;
+    case 'change-version': versionChange=null;versionModal(setId);break;
+    case 'version-cancel': if(!versionChange?.busy){versionChange=null;settingsModal(setId);}break;
+    case 'version-check': await checkVersionChange();break;
+    case 'version-apply': await applyVersionChange();break;
+    case 'version-all': if(versionChange?.plan){for(const row of versionChange.plan.incompatible)versionChange.choices[row.key]=t.dataset.choice;versionModal(versionChange.id);}break;
     case 's-delete': {
       const p=S.profiles.find(x=>x.id===setId);
       S.profiles=S.profiles.filter(x=>x.id!==setId);
@@ -2807,7 +2849,7 @@ document.addEventListener('click', async e => {
       S.activeCape = S.activeCape===id ? null : id;
       save(); spinCape(); render();
       toast(S.activeCape
-        ? 'Cape equipped. It will be applied when your Fabric 26.2 profile launches.'
+        ? 'Cape equipped. It will be applied when your Fabric or Forge profile launches.'
         : 'Cape removed', 'info');
       break;
     case 'del-cape': S.capes=S.capes.filter(c=>c.id!==id);if(S.activeCape===id)S.activeCape=null;save();spinCape();render();toast('Cape removed');break;
@@ -2967,8 +3009,9 @@ document.addEventListener('change', e => {
     case 's-close': p.settings.closeOnLaunch=t.checked; break;
     case 's-clientmod': p.settings.clientMod=t.checked; save(); break;
     case 's-pin': p.pinned=t.checked; break;
-    case 's-version': p.version=t.value; settingsModal(setId); break;
-    case 's-loader': p.loader=t.value; settingsModal(setId); break;
+    case 'version-target': versionChange.version=t.value;versionModal(versionChange.id);break;
+    case 'version-loader': versionChange.loader=t.value;versionModal(versionChange.id);break;
+    case 'version-choice': versionChange.choices[t.dataset.key]=t.value;break;
   }
 });
 document.addEventListener('input', e => {
@@ -2978,7 +3021,7 @@ document.addEventListener('input', e => {
     S.bg[key]=parseInt(bgc.value);
     const lbl=bgc.parentElement.querySelector('b');
     if(lbl) lbl.textContent=bgc.value+(key==='blur'?'px':'%');
-    const layer=document.querySelector('.hero .bgimg');
+    const layer=document.querySelector('.workspace-background .bgimg');
     if(layer){
       layer.style.opacity=(S.bg.opacity??70)/100;
       layer.style.filter=`blur(${S.bg.blur??0}px)`;
@@ -3311,6 +3354,7 @@ window.addEventListener('resize', ()=>{
 /* ---------- boot ---------- */
 (async function(){
   await load();
+  if(DESKTOP)window.monkey.profiles.onProgress(progress=>{const text=document.getElementById('version-progress');if(text)text.textContent=progress.detail||'Updating mods…';});
   if(!S.theme) S.theme={...PRESETS.jungle};
   applyTheme(); applyFont();
   document.documentElement.classList.toggle('no-anim', S.uiAnim===false);

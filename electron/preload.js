@@ -58,6 +58,13 @@ contextBridge.exposeInMainWorld('monkey', {
     openFolder: (profile) => ipcRenderer.invoke('mods:folder', { profile })
   },
 
+  profiles: {
+    versions: () => ipcRenderer.invoke('profiles:versions'),
+    inherit: (sourceId,profile) => ipcRenderer.invoke('profiles:inherit',{sourceId,profile}),
+    planVersion: (id,version,loader) => ipcRenderer.invoke('profiles:plan-version',{id,version,loader}),
+    applyVersion: (token,choices) => ipcRenderer.invoke('profiles:apply-version',{token,choices}),
+    onProgress: on('profiles:progress')
+  },
   update: {
     check: () => ipcRenderer.invoke('update:check'),
     install: () => ipcRenderer.invoke('update:install'),

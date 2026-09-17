@@ -1,37 +1,84 @@
-# Builds Monkey Client for Windows, macOS and Linux and attaches the
-# installers to a GitHub release.
-#
-# macOS installers can only be produced on a Mac, so this runs the build on
-# GitHub's macOS runners rather than your PC. Free for public repositories.
-#
-# Run it from the Actions tab (Run workflow), or push a version tag.
 name: Release
-
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
-
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      # No npm cache here on purpose: caching needs a package-lock.json in the
-      # repo, and its absence fails the whole job before anything is built.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build and publish
-        run: npx electron-builder --publish always
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build installers and update metadata
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/latest*.yml
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: release
+      - name: Verify every platform's update files
+        run: node tools/verify-update-assets.cjs release
+      - name: Publish complete release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Tag does not match package.json" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [[ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" != true ]]; then
+              echo "Refusing to overwrite an already published release" >&2
+              exit 1
+            fi
+          else
+            gh release create "$TAG" --draft --target "$GITHUB_SHA" --title "Monkey Client $VERSION" --notes-file RELEASE-NOTES.md
+          fi
+          gh release upload "$TAG" release/* --clobber
+          gh release edit "$TAG" --draft=false --latest

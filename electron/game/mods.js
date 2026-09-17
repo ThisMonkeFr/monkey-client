@@ -10,9 +10,11 @@ const dirFor = (profile) =>
   path.join(profile.settings && profile.settings.gameDir ? profile.settings.gameDir : instance(profile.id), 'mods');
 
 async function download(profile, mod) {
+  if(!mod.fileName||path.basename(mod.fileName)!==mod.fileName||/[\\/:]/.test(mod.fileName))throw Error('Invalid mod filename');
   const dir = dirFor(profile);
   await io.ensureDir(dir);
   const target = path.join(dir, mod.fileName + (mod.enabled === false ? '.disabled' : ''));
+  if(!mod.url){if(await io.verified(target))return target;if(mod.enabled===false)return target;throw Error('Local mod is missing: '+mod.fileName);}
   await io.download(mod.url, target, { sha1: mod.sha1 });
   return target;
 }
@@ -25,12 +27,8 @@ async function sync(profile, onProgress = () => {}) {
   /* The client mod is managed, not chosen: every Fabric profile gets it and
      keeps it current, which is what makes the launcher and the in-game
      client feel like one product. */
-  try {
-    const r = await clientmod.ensure(profile, onProgress);
-    if (r.installed) onProgress({ stage: 'mods', pct: 90, detail: `Monkey Client ${r.installed} installed` });
-  } catch (e) {
-    onProgress({ stage: 'mods', pct: 90, detail: `Monkey Client mod: ${e.message}` });
-  }
+  const result = await clientmod.ensure(profile, onProgress);
+  if(result.installed)onProgress({stage:'mods',pct:90,detail:`Monkey Client ${result.installed} installed`});
 
   const mods = profile.mods || [];
   const dir = dirFor(profile);
@@ -42,15 +40,8 @@ async function sync(profile, onProgress = () => {}) {
     await download(profile, mod);
   }
 
-  const wanted = new Set(mods.flatMap(m => [m.fileName, m.fileName + '.disabled']));
-  // Jars the launcher manages itself are not user choices, so never sweep them.
-  const managed = /^(monkeyclient|fabric-api-managed)\.jar$/i;
-  for (const f of await fsp.readdir(dir).catch(() => [])) {
-    if (managed.test(f)) continue;
-    if (/\.jar(\.disabled)?$/.test(f) && !wanted.has(f)) {
-      await fsp.unlink(path.join(dir, f)).catch(() => {});
-    }
-  }
+  // Unlisted local JARs belong to the player. Only an explicit Remove action
+  // or a reviewed version migration may remove them.
 }
 
 async function setEnabled(profile, fileName, enabled) {

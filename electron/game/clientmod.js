@@ -1,135 +1,48 @@
-/* ------------------------------------------------------------------
-   Keeps the Monkey Client mod present and current in every Fabric
-   profile, so players never install it by hand. Runs before launch.
-
-   It is deliberately forgiving: if GitHub is unreachable, an existing
-   jar is left alone and the game still starts.
-   ------------------------------------------------------------------ */
-const path = require('path');
-const io = require('./io');
-const { fsp } = io;
-const { clientModRepo } = require('../config');
-const crypto = require('crypto');
-
-function compareVersions(a, b) {
-  const parse = v => /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(v));
-  const av = parse(a), bv = parse(b);
-  if (!av || !bv) return 0;
-  for (let i = 1; i <= 3; i++) {
-    const diff = Number(av[i]) - Number(bv[i]);
-    if (diff) return Math.sign(diff);
-  }
-  return 0;
+/* Install only artifacts explicitly built for the selected Minecraft + loader. */
+const path=require('path'),crypto=require('crypto');
+const io=require('./io'),{fsp}=io;
+const {clientModRepo}=require('../config');
+const MANAGED='monkeyclient.jar',MARKER='monkeyclient-version.json';
+const modsDir=profile=>path.join(profile.settings?.gameDir||io.instance(profile.id),'mods');
+function compareVersions(a,b){const parse=v=>/^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(v)),av=parse(a),bv=parse(b);if(!av||!bv)return 0;for(let i=1;i<4;i++){const delta=Number(av[i])-Number(bv[i]);if(delta)return Math.sign(delta);}return 0;}
+const checksum=data=>crypto.createHash('sha256').update(data).digest('hex');
+function matching(catalog,profile){return (catalog.releases||[catalog]).find(item=>item.minecraft===profile.version&&(item.loader||'fabric')===profile.loader&&typeof item.file==='string'&&path.basename(item.file)===item.file&&/^[a-f0-9]{64}$/.test(item.sha256||''));}
+async function bundledRelease(profile){try{const dir=path.join(__dirname,'../../bundled'),catalog=JSON.parse(await fsp.readFile(path.join(dir,'monkeyclient.json'),'utf8')),meta=matching(catalog,profile);if(!meta)return null;const local=path.join(dir,meta.file);if(checksum(await fsp.readFile(local))!==meta.sha256)throw Error('Bundled mod checksum mismatch');return {...meta,local};}catch{return null;}}
+async function requestJson(url){const response=await fetch(url,{signal:AbortSignal.timeout(10000),headers:{Accept:'application/json','User-Agent':'MonkeyClient/0.7'}});if(!response.ok)throw Error('HTTP '+response.status);return response.json();}
+async function latestRelease(profile){
+ const release=await requestJson(`https://api.github.com/repos/${clientModRepo}/releases/latest`),manifest=release.assets?.find(asset=>asset.name==='monkeyclient.json');
+ if(!manifest)throw Error('No version-specific mod catalog in the published release');
+ const meta=matching(await requestJson(manifest.browser_download_url),profile);if(!meta)throw Error('Published release has no '+profile.loader+' build for '+profile.version);
+ const artifact=release.assets.find(asset=>asset.name===meta.file);if(!artifact)throw Error('Published artifact is missing');return {...meta,url:artifact.browser_download_url,size:artifact.size};
 }
-
-async function bundledRelease(profile) {
-  try {
-    const dir = path.join(__dirname, '../../bundled');
-    const meta = JSON.parse(await fsp.readFile(path.join(dir, 'monkeyclient.json'), 'utf8'));
-    if (meta.minecraft !== profile.version || path.basename(meta.file) !== meta.file) return null;
-    const local = path.join(dir, meta.file);
-    const data = await fsp.readFile(local);
-    if (crypto.createHash('sha256').update(data).digest('hex') !== meta.sha256) return null;
-    return { version: meta.version, local };
-  } catch { return null; }
+async function installed(dir,profile){try{const meta=JSON.parse(await fsp.readFile(path.join(dir,MARKER),'utf8'));if(meta.minecraft!==profile.version||meta.loader!==profile.loader)return null;if(checksum(await fsp.readFile(path.join(dir,MANAGED)))!==meta.sha256)return null;return meta;}catch{return null;}}
+async function ensureFabricApi(profile,dir,progress){
+ if((profile.mods||[]).some(mod=>mod.enabled!==false&&(mod.projectId==='P7dR8mSH'||/^fabric-api[\d+_.-]/i.test(mod.fileName||''))))return;
+ const target=path.join(dir,'fabric-api-managed.jar'),marker=path.join(dir,'fabric-api-version.json');
+ progress({stage:'mods',pct:88,detail:'Checking Fabric API for '+profile.version});
+ try{
+  const list=await requestJson('https://api.modrinth.com/v2/project/fabric-api/version?loaders='+encodeURIComponent('["fabric"]')+'&game_versions='+encodeURIComponent(JSON.stringify([profile.version]))),release=list.find(v=>v.version_type==='release')||list[0];
+  if(!release)throw Error('No matching Fabric API release');const file=release.files.find(f=>f.primary)||release.files[0];
+  await io.download(file.url,target,{sha1:file.hashes.sha1});await fsp.writeFile(marker,JSON.stringify({minecraft:profile.version,sha256:checksum(await fsp.readFile(target))}));
+ }catch(error){let valid=false;try{const meta=JSON.parse(await fsp.readFile(marker,'utf8'));valid=meta.minecraft===profile.version&&checksum(await fsp.readFile(target))===meta.sha256;}catch{}if(!valid)throw Error('Could not install Fabric API: '+error.message);}
 }
-
-const MANAGED = 'monkeyclient.jar';          // our jar always has this name
-const MARKER = 'monkeyclient-version.json';  // what we last installed
-
-const modsDir = (profile) =>
-  path.join(profile.settings && profile.settings.gameDir
-    ? profile.settings.gameDir : io.instance(profile.id), 'mods');
-
-async function latestRelease() {
-  const r = await fetch(`https://api.github.com/repos/${clientModRepo}/releases/latest`, {
-    signal: AbortSignal.timeout(10000),
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'MonkeyClient' }
-  });
-  if (!r.ok) throw new Error(`GitHub said ${r.status}`);
-  const rel = await r.json();
-  const asset = (rel.assets || []).find(a =>
-    /^monkeyclient.*\.jar$/i.test(a.name) && !/sources/i.test(a.name));
-  if (!asset) throw new Error('That release has no mod jar attached.');
-  return { version: rel.tag_name || rel.name, url: asset.browser_download_url, size: asset.size };
+async function ensure(profile,progress=()=>{}){
+ if(!['fabric','forge'].includes(profile.loader))return {skipped:'vanilla profile'};
+ const dir=modsDir(profile);
+ if(profile.settings?.clientMod===false){try{await fsp.rename(path.join(dir,MANAGED),path.join(dir,MANAGED+'.disabled'));}catch(error){if(error.code!=='ENOENT')throw error;}return {skipped:'disabled for this profile'};}
+ await io.ensureDir(dir);
+ const bundled=await bundledRelease(profile),have=await installed(dir,profile);let release=bundled;
+ try{const published=await latestRelease(profile);if(!release||compareVersions(published.version,release.version)>0)release=published;}catch(error){if(!release&&!have)throw Error('No compatible Monkey Client build for '+profile.version+' '+profile.loader+': '+error.message);}
+ if(profile.loader==='fabric')await ensureFabricApi(profile,dir,progress);
+ if(have&&(!release||compareVersions(have.version,release.version)>=0))return have.version===release?.version?{current:have.version}:{kept:have.version};
+ if(!release)throw Error('No compatible Monkey Client artifact');
+ progress({stage:'mods',pct:90,detail:'Installing Monkey Client '+release.version+' for '+profile.version+' '+profile.loader});
+ const target=path.join(dir,MANAGED),stage=target+'.tmp';
+ try{if(release.local)await fsp.copyFile(release.local,stage);else await io.download(release.url,stage,{size:release.size});if(checksum(await fsp.readFile(stage))!==release.sha256)throw Error('Monkey Client artifact checksum mismatch');await fsp.rename(stage,target);}finally{await fsp.unlink(stage).catch(()=>{});}
+ await fsp.unlink(target+'.disabled').catch(()=>{});
+ await fsp.writeFile(path.join(dir,MARKER),JSON.stringify({version:release.version,minecraft:profile.version,loader:profile.loader,sha256:release.sha256,installed:Date.now()},null,2));
+ // Keep duplicate old builds recoverable, outside either loader's scan.
+ for(const name of await fsp.readdir(dir))if(name!==MANAGED&&/^monkeyclient.*\.jar$/i.test(name))await fsp.rename(path.join(dir,name),path.join(dir,name+'.disabled'));
+ return {installed:release.version};
 }
-
-async function installedVersion(dir) {
-  try { return JSON.parse(await fsp.readFile(path.join(dir, MARKER), 'utf8')).version; }
-  catch { return null; }
-}
-
-/**
- * Fabric API is a hard dependency of the mod, so the launcher fetches the
- * build matching this profile rather than making the player find it.
- */
-async function ensureFabricApi(profile, dir, onProgress) {
-  if ((profile.mods || []).some(m => /fabric[-_]?api/i.test(m.fileName || m.title || ''))) return;
-  onProgress({ stage: 'mods', pct: 88, detail: 'Checking Fabric API' });
-  const q = `https://api.modrinth.com/v2/project/fabric-api/version`
-    + `?loaders=${encodeURIComponent(JSON.stringify(['fabric']))}`
-    + `&game_versions=${encodeURIComponent(JSON.stringify([profile.version]))}`;
-  const r = await fetch(q);
-  if (!r.ok) throw new Error(`Modrinth said ${r.status}`);
-  const list = await r.json();
-  if (!Array.isArray(list) || !list.length)
-    throw new Error(`Fabric API has no build for ${profile.version}.`);
-  const file = list[0].files.find(f => f.primary) || list[0].files[0];
-  const target = path.join(dir, 'fabric-api-managed.jar');
-  await io.download(file.url, target, { sha1: file.hashes && file.hashes.sha1 });
-}
-
-async function ensure(profile, onProgress = () => {}) {
-  if (profile.loader !== 'fabric') return { skipped: 'not a Fabric profile' };
-  if (profile.settings && profile.settings.clientMod === false)
-    return { skipped: 'disabled for this profile' };
-
-  const dir = modsDir(profile);
-  await io.ensureDir(dir);
-
-  try {
-    await ensureFabricApi(profile, dir, onProgress);
-  } catch (e) {
-    // Not fatal on its own: the player may have installed it themselves.
-    onProgress({ stage: 'mods', pct: 88, detail: `Fabric API: ${e.message}` });
-  }
-
-  const bundled = await bundledRelease(profile);
-  let release;
-  try {
-    release = await latestRelease();
-  } catch (e) {
-    if (bundled) release = bundled;
-    else {
-    const have = await installedVersion(dir);
-    return have
-      ? { kept: have, message: `Kept ${have} (${e.message})` }
-      : { failed: e.message };
-    }
-  }
-  if (bundled && compareVersions(bundled.version, release.version) >= 0) release = bundled;
-
-  const have = await installedVersion(dir);
-  const jar = path.join(dir, MANAGED);
-  const present = await fsp.stat(jar).then(() => true).catch(() => false);
-  if (have === release.version && present) return { current: have };
-  if (present && compareVersions(have, release.version) > 0) return { kept: have };
-
-  onProgress({ stage: 'mods', pct: 90, detail: `Installing Monkey Client ${release.version}` });
-  if (release.local) {
-    const staging = jar + '.tmp';
-    await fsp.copyFile(release.local, staging);
-    await fsp.rename(staging, jar);
-  } else await io.download(release.url, jar, { size: release.size });
-  await fsp.writeFile(path.join(dir, MARKER),
-    JSON.stringify({ version: release.version, installed: Date.now() }, null, 2));
-
-  // Clear out any older copies the player may have dropped in by hand.
-  for (const f of await fsp.readdir(dir).catch(() => [])) {
-    if (f !== MANAGED && /^monkeyclient.*\.jar$/i.test(f))
-      await fsp.unlink(path.join(dir, f)).catch(() => {});
-  }
-  return { installed: release.version };
-}
-
-module.exports = { ensure, modsDir };
+module.exports={ensure,modsDir,matching,compareVersions,bundledRelease};

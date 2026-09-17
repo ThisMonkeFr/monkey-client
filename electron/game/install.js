@@ -52,8 +52,9 @@ async function fabricProfile(gameVersion, loaderVersion) {
 /* Merge Fabric on top of vanilla. Fabric supplies its own mainClass and a set
    of maven-coordinate libraries which must precede the vanilla ones. */
 async function resolve(mcVersion, loader) {
+  require('./versions').assertSupported(mcVersion,loader);
   const vanilla = await versionJson(mcVersion);
-  if (loader !== 'fabric') return { version: vanilla, extraLibs: [], mainClass: vanilla.mainClass };
+  if (loader !== 'fabric') return { version: vanilla, extraLibs: [], mainClass: vanilla.mainClass, forge:loader==='forge' };
 
   const { profile, loaderVersion } = await fabricProfile(mcVersion);
   const extraLibs = (profile.libraries || []).map(l => ({
@@ -117,7 +118,7 @@ async function assetTasks(version) {
 /* --- install ---------------------------------------------------------- */
 async function install(mcVersion, loader, onProgress = () => {}) {
   onProgress({ stage: 'metadata', pct: 2, detail: `Reading Minecraft ${mcVersion} manifest` });
-  const resolved = await resolve(mcVersion, loader);
+  let resolved = await resolve(mcVersion, loader);
   const version = resolved.version;
 
   onProgress({ stage: 'metadata', pct: 5, detail: 'Working out what needs downloading' });
@@ -153,6 +154,14 @@ async function install(mcVersion, loader, onProgress = () => {}) {
     }
   });
 
+  if(resolved.forge){
+    const forge=await require('./forge').install(version,onProgress);
+    const overrides=new Set((forge.libraries||[]).map(l=>{const [group,artifact,,classifier='']=l.name.split(':');return group+':'+artifact+':'+classifier;}));
+    const base={...version,libraries:(version.libraries||[]).filter(l=>{const [group,artifact,,classifier='']=l.name.split(':');return !overrides.has(group+':'+artifact+':'+classifier);})};
+    const inherited=libraryTasks(base).jars,extra=libraryTasks(forge).jars;
+    resolved={version,extraLibs:[],mainClass:forge.mainClass,loaderVersion:require('./versions').assertSupported(mcVersion,loader).forge,extraJvm:forge.arguments?.jvm||[],extraGame:forge.arguments?.game||[],id:forge.id};
+    return {version,resolved,client,natives,assetIndex:index,classpath:[...extra.map(j=>j.file),...inherited.map(j=>j.file),client.file]};
+  }
   return {
     version, resolved, client, natives, assetIndex: index,
     classpath: [...fabricJars.map(j => j.file), ...jars.map(j => j.file), client.file]
