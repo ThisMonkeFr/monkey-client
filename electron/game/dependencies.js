@@ -2,8 +2,9 @@ const API='https://api.modrinth.com/v2';
 async function resolve(profile,root,fetchImpl=fetch){
  const json=async url=>{const r=await fetchImpl(url);if(!r.ok)throw Error('Could not resolve mod dependencies');return r.json();};
  const known=new Map((profile.mods||[]).map(m=>[m.projectId,m])),result=[],visited=new Map();
- const managed=new Set(profile.loader==='fabric'?['P7dR8mSH',...(profile.settings?.clientMod===false?[]:['AANobbMI'])]:[]);
- const managedVersions=new Map();for(const row of require('./performance').selection(profile)){managed.add(row.projectId);managedVersions.set(row.projectId,row.versionId);}
+ const optimizations=require('./performance').selection(profile),managed=new Set(profile.loader==='fabric'?[...(profile.settings?.clientMod!==false||optimizations.length?['P7dR8mSH']:[]),...(profile.settings?.clientMod===false?[]:['AANobbMI'])]:[]);
+ const managedVersions=new Map();for(const row of optimizations)if(!known.has(row.projectId)){managed.add(row.projectId);managedVersions.set(row.projectId,row.versionId);}
+ for(const id of known.keys())managed.delete(id);
  async function visit(release){
   if(visited.has(release.project_id)){if(visited.get(release.project_id)!==release.id)throw Error('Conflicting dependency versions');return;}
   if(visited.size>=100)throw Error('Too many dependencies');visited.set(release.project_id,release.id);

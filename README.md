@@ -100,3 +100,7 @@ Launch fixes cover the exact Java major, native CPU filtering, Fabric library ov
 Same-profile concurrent launches, human-readable instance folders, inherited in-game module profiles, screenshot messages and required-name/icon group chats are included. The player preview uses a reusable GPU renderer, sharper artwork and theme glow with adaptive frame pacing. All 15 bundled mod builds are version 0.7.0.
 
 Profile settings offer exact-version performance presets; see [PERFORMANCE.md](PERFORMANCE.md). Run `npm test` for 58 regression tests. Runtime verification creates fresh worlds, enables modules, checks textures and the actual pause-menu/settings buttons, and captures a 4K frame. See [RELEASE-NOTES.md](RELEASE-NOTES.md) for scope and limitations.
+
+## Release 0.10.0
+
+Microsoft direct sign-in, full in-game Friends/Screenshots/Skins tabs, group member lists, profile codes and presets, screenshot archives/deletion and dependency approval are included. The bundle contains all 15 mod 0.8.0 builds with stable creative flight and corrected 26.3 editor input. Keep the launcher running (hidden is fine) for the in-game launcher tabs. See RELEASE-NOTES.md for verification and limits.

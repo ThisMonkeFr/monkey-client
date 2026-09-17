@@ -303,6 +303,14 @@ img,canvas{-webkit-user-drag:none}
 .scard .acts .btn{justify-content:center;padding:7px 8px;min-width:0;overflow:hidden}
 .scard .acts .btn:first-child{white-space:nowrap;text-overflow:ellipsis}
 .fr-layout{display:grid;grid-template-columns:280px 1fr;height:100%}
+.fr-layout.has-members{grid-template-columns:210px minmax(220px,1fr) 180px}
+.group-people{min-width:0;overflow-y:auto;padding:14px 10px;background:var(--input);border-left:1px solid var(--line)}
+.group-people h3{font-size:12px;color:var(--dim);margin-bottom:14px}
+.group-person{display:flex;align-items:flex-start;gap:8px;padding:9px 0;min-width:0}
+.group-person>img{width:28px;height:28px;flex:none;image-rendering:pixelated;border-radius:4px;background:var(--sel)}
+.group-person>div{min-width:0;flex:1}.group-person b{display:block;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.group-person small{display:block;color:var(--mute);font-size:10px;margin-top:5px}
+.group-person .btn{font-size:10px;padding:5px 6px;margin-top:7px;min-height:24px}
 .fr-list{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--input)}
 .fr-list .hd{padding:16px;border-bottom:1px solid var(--line)}
 .fr-scroll{flex:1;overflow-y:auto;padding:8px}
@@ -317,6 +325,10 @@ img,canvas{-webkit-user-drag:none}
 .chat .hd img{width:34px;height:34px;border-radius:7px;image-rendering:pixelated}
 .msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:9px}
 .msg{max-width:66%;padding:9px 13px;border-radius:12px;font-size:13.5px}
+.msg{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:10px;max-width:90%}
+.message-author{display:contents}.message-author img{grid-column:1;grid-row:1/span 3;width:32px;height:32px;image-rendering:pixelated;border-radius:4px;background:var(--sel)}
+.message-author b{grid-column:2;margin-bottom:5px;font-size:12px;overflow-wrap:anywhere}
+.msg>span,.msg>time,.msg>.chat-shot{grid-column:2;overflow-wrap:anywhere}
 .msg.them{background:var(--plaque);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
 .msg.me{background:linear-gradient(180deg,var(--btn-a),var(--btn-b));color:var(--on-tx);align-self:flex-end;border-bottom-right-radius:4px}
 .msg time{display:block;font-size:10px;opacity:.6;margin-top:3px}
@@ -1137,6 +1149,7 @@ function spinAttach(){
   const cv=document.getElementById('spin');
   if(!cv || cv.dataset.bound) return;
   cv.dataset.bound='1';
+  document.querySelectorAll('.playbtn').forEach(button=>{if(button.dataset.outlineBound)return;button.dataset.outlineBound='1';button.addEventListener('pointerenter',()=>{SPIN.hover=true;spinDraw();});button.addEventListener('pointerleave',()=>{SPIN.hover=false;spinDraw();});});
   cv.addEventListener('pointerenter',()=>{SPIN.hover=true;spinDraw();});
   cv.addEventListener('pointerleave',()=>{SPIN.hover=false;spinDraw();});
   cv.addEventListener('pointerdown',e=>{
@@ -1802,7 +1815,7 @@ async function applyVersionChange(){
    MODS — installed for this profile, or discover on Modrinth
    ============================================================ */
 function installedModCount(p){return p.mods.length+managedEntries(p).length+(['fabric','forge'].includes(p.loader)&&p.settings?.clientMod!==false?1:0);}
-function managedEntries(p){const rows=[];if(p.loader==='fabric'){rows.push({title:'Fabric API',projectId:'P7dR8mSH',description:'Loader API required by the included mods'});if(p.settings.clientMod!==false)rows.push({title:'Sodium',projectId:'AANobbMI',description:'Bundled inside Monkey Client'});}const mode=p.settings?.performance||'balanced';for(const m of (PERFORMANCE_INFO.find(r=>r.minecraft===p.version&&r.loader===p.loader)?.mods||[]))if(mode!=='off'&&(mode==='maximum'||m.tier==='balanced'))rows.push({...m,description:'Managed by the '+mode+' performance preset'});return rows.filter(m=>!(p.mods||[]).some(u=>u.projectId===m.projectId));}
+function managedEntries(p){const rows=[];if(p.loader==='fabric'){if(p.settings?.clientMod!==false||performanceNames(p).length)rows.push({title:'Fabric API',projectId:'P7dR8mSH',description:'Loader API required by the included mods'});if(p.settings.clientMod!==false)rows.push({title:'Sodium',projectId:'AANobbMI',description:'Bundled inside Monkey Client'});}const mode=p.settings?.performance||'balanced';for(const m of (PERFORMANCE_INFO.find(r=>r.minecraft===p.version&&r.loader===p.loader)?.mods||[]))if(mode!=='off'&&(mode==='maximum'||m.tier==='balanced'))rows.push({...m,description:'Managed by the '+mode+' performance preset'});return rows.filter(m=>!(p.mods||[]).some(u=>u.projectId===m.projectId));}
 function performanceNames(p){const mode=p.settings?.performance||'balanced';return (PERFORMANCE_INFO.find(r=>r.minecraft===p.version&&r.loader===p.loader)?.mods||[]).filter(m=>mode!=='off'&&(mode==='maximum'||m.tier==='balanced')).map(m=>m.title);}
 const MOD_TABS=[['mod','Mods'],['modpack','Modpacks'],['resourcepack','Resource packs'],
   ['shader','Shaders'],['datapack','Data packs']];

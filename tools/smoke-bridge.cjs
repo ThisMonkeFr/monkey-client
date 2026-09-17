@@ -32,6 +32,8 @@ app.whenReady().then(async()=>{
  assert.equal(await js("getComputedStyle(document.querySelector('.rail')).display"),'none');
  await js("openChat('group:group-test')");await until(()=>js("!!document.querySelector('.group-people')&&document.querySelector('.group-people').textContent.includes('Builder')"));
  assert.equal(await js("document.querySelectorAll('[data-act=group-friend]').length"),1);
+ assert.equal(await js("document.querySelector('.group-person>img').getBoundingClientRect().width"),28);
+ assert.equal(await js("document.querySelector('.message-author img').getBoundingClientRect().width"),32);
  assert.ok(await js("document.querySelector('.chat').textContent.includes('Builder')"));
  await until(()=>js("!document.querySelector('#boot-screen')"));await wait(250);
  await fs.mkdir('build/ui-check',{recursive:true});let frame=await fetch(env.MONKEY_UI_URL+'/frame',{headers});assert.equal(frame.status,200);await fs.writeFile('build/ui-check/in-game-friends.png',Buffer.from(await frame.arrayBuffer()));

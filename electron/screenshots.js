@@ -66,7 +66,8 @@ function createScreenshotService({store,io,nativeImage,shell}){
   let size=image.getSize();if(size.width>3840||size.height>2160){image=image.resize({width:Math.min(3840,Math.round(size.width*Math.min(3840/size.width,2160/size.height)))});size=image.getSize();}
   let bytes=image.toJPEG(88);if(bytes.length>2*1024*1024){image=image.resize({width:Math.min(1920,size.width)});bytes=image.toJPEG(78);size=image.getSize();}
   if(bytes.length>2*1024*1024)throw Error('Screenshot is too large to share.');
-  return {name:path.basename(file),width:size.width,height:size.height,data:'data:image/jpeg;base64,'+bytes.toString('base64'),thumbnail:'data:image/jpeg;base64,'+image.resize({width:320}).toJPEG(72).toString('base64')};
+  const meta=await fs.readFile(path.join(archive,id+'.json'),'utf8').then(JSON.parse).catch(()=>null);
+  return {name:meta?.name||path.basename(file),width:size.width,height:size.height,data:'data:image/jpeg;base64,'+bytes.toString('base64'),thumbnail:'data:image/jpeg;base64,'+image.resize({width:320}).toJPEG(72).toString('base64')};
  }
  async function remove(id){return serial(async()=>{
   const file=files.get(id);if(!file)throw Error('Refresh Screenshots before deleting this image.');
