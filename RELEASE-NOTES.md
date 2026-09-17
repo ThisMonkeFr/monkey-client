@@ -1,3 +1,16 @@
+# 0.11.0 - Native in-game libraries
+
+Bundles Monkey Client mod 0.9.0 for all 15 supported loader/version combinations.
+
+- Replaces streamed launcher tabs with native Minecraft Friends, Screenshots, and Skins/Capes screens. The launcher provides only authenticated data and account services; no hidden Electron window is created.
+- Both interfaces share saved skins, capes and the persistent screenshot archive. In-game edits appear in the launcher, and applied cosmetics update the local player.
+- Restores the actual in-game home menu while keeping the Home navigation button removed.
+- Screenshot chat actions use the selected theme: `Screenshot taken [Open] [Delete]`. Deletion removes the original and archive after confirmation.
+- Native images load once as needed, are bounded in size, and release their textures on close. Friends checks for a small change revision every two seconds while open.
+- Friends operations are bound to the account that launched that Minecraft instance, preventing messages from accidentally using another selected account.
+
+Existing installations receive this through automatic updates. Keep the launcher running for shared-library and MonkeyNet access from the native screens.
+
 # Monkey Client 0.10.0 / mod 0.8.0
 
 ## Flight and game controls

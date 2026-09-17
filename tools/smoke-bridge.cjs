@@ -1,52 +1,27 @@
-const {app,BrowserWindow,ipcMain}=require('electron');
-const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path');
-app.commandLine.appendSwitch('no-sandbox');
-app.on('window-all-closed',()=>{});
-const me={name:'TestPlayer',uuid:'a'.repeat(32)},friend={uuid:'b'.repeat(32),name:'TestFriend',online:true},stranger={uuid:'c'.repeat(32),name:'Builder'};
-const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFZkAAAAASUVORK5CYII=';
-const group={id:'group-test',name:'Building crew',owner:me.uuid,icon:png,members:[me.uuid,friend.uuid,stranger.uuid]};
-let state={account:me,profiles:[],skins:[],friends:[],requests:[],chats:{}},deletes=0,bridge;
-for(const channel of ['store:load','store:save','auth:account','auth:accounts','app:version','net:connected','net:call','game:instances','update:status','screenshots:list','screenshots:delete','mc:skin'])ipcMain.handle(channel,async(_e,arg)=>{
- switch(channel){
-  case 'store:load':return state;
-  case 'store:save':state={...state,...arg};return state;
-  case 'auth:account':return me;
-  case 'auth:accounts':return {accounts:[me],active:me.uuid};
-  case 'app:version':return '0.10.0';
-  case 'net:connected':return true;
-  case 'game:instances':return [];
-  case 'update:status':return {state:'idle'};
-  case 'mc:skin':return {ok:false};
-  case 'screenshots:list':return {ok:true,data:{items:deletes?[]:[{id:'shot',name:'World.png',profile:'Deleted profile',thumbnail:png,created:Date.now()}],total:deletes?0:1,hasMore:false}};
-  case 'screenshots:delete':deletes++;return {ok:true,data:true};
-  case 'net:call':{const data={friends:{friends:[friend]},requests:{requests:[]},groups:{groups:[group]},groupMembers:{members:[{uuid:me.uuid,name:me.name},friend,stranger]},groupHistory:{messages:[{id:'message',from:stranger.uuid,name:stranger.name,t:'Our base!',at:Date.now()}]},history:{messages:[]}};return {ok:true,data:data[arg.method]||{}};}
- }
-});
-const wait=ms=>new Promise(r=>setTimeout(r,ms));
-async function until(fn){for(let i=0;i<150;i++){if(await fn())return;await wait(100);}throw Error('Timed out waiting for bridge UI');}
+/* Isolated data-service fixture. This deliberately creates zero BrowserWindows. */
+const {app,BrowserWindow,nativeImage}=require('electron');
+const assert=require('node:assert/strict'),path=require('node:path');
+app.commandLine.appendSwitch('no-sandbox');app.on('window-all-closed',()=>{});
+const me={name:'ReleaseCheck',uuid:'00000000000000000000000000000001'},friend={uuid:'b'.repeat(32),name:'TestFriend',online:true},stranger={uuid:'c'.repeat(32),name:'Builder'};
+let bridge;
 app.whenReady().then(async()=>{
- bridge=require('../electron/game-ui').createGameUI({BrowserWindow,net:{}});const env=await bridge.session('test'),headers={Authorization:'Bearer '+env.MONKEY_UI_TOKEN,'Content-Type':'application/json'};
- const post=async(route,body)=>{const r=await fetch(env.MONKEY_UI_URL+route,{method:'POST',headers,body:JSON.stringify(body)});assert.equal(r.status,200,await r.text());};
- await post('/open',{tab:'friends'});const win=BrowserWindow.getAllWindows()[0],wc=win.webContents,errors=[];wc.on('console-message',(_e,level,message)=>{if(level>=3&&!/ERR_|WebGL|favicon/i.test(message))errors.push(message);});
- const js=code=>wc.executeJavaScript(code);await until(()=>js("document.body.classList.contains('boot-ready')"));
- assert.equal(await js("getComputedStyle(document.querySelector('.rail')).display"),'none');
- await js("openChat('group:group-test')");await until(()=>js("!!document.querySelector('.group-people')&&document.querySelector('.group-people').textContent.includes('Builder')"));
- assert.equal(await js("document.querySelectorAll('[data-act=group-friend]').length"),1);
- assert.equal(await js("document.querySelector('.group-person>img').getBoundingClientRect().width"),28);
- assert.equal(await js("document.querySelector('.message-author img').getBoundingClientRect().width"),32);
- assert.ok(await js("document.querySelector('.chat').textContent.includes('Builder')"));
- await until(()=>js("!document.querySelector('#boot-screen')"));await wait(250);
- await fs.mkdir('build/ui-check',{recursive:true});let frame=await fetch(env.MONKEY_UI_URL+'/frame',{headers});assert.equal(frame.status,200);await fs.writeFile('build/ui-check/in-game-friends.png',Buffer.from(await frame.arrayBuffer()));
- await post('/open',{tab:'screenshots'});await until(()=>js("document.body.textContent.includes('World.png')"));
- const click=async selector=>{const pos=await js(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);await post('/input',{type:'mouseDown',button:'left',...pos});await post('/input',{type:'mouseUp',button:'left',...pos});};
- await click('[data-act=shot-delete]');await until(()=>js("document.querySelector('#modal').textContent.includes('Delete')"));
- await fs.writeFile('build/ui-check/in-game-delete.png',(await wc.capturePage()).toPNG());
- await js('closeModal()');assert.equal(deletes,0);
- await post('/open',{tab:'skins'});await until(()=>js("document.body.textContent.includes('Add a skin')"));
- await fs.writeFile('build/ui-check/in-game-skins.png',(await wc.capturePage()).toPNG());
- assert.equal(await js('document.documentElement.scrollWidth>innerWidth'),false);
- if(errors.length)throw Error(errors.join('\n'));console.log('PASS real Electron offscreen friends, group members, author names, screenshot controls and skins');
- const gameArg=process.argv.indexOf('--game');if(gameArg>=0){const cp=require('node:child_process');await new Promise((resolve,reject)=>{const child=cp.spawn('node',['tools/smoke-game.cjs',...process.argv.slice(gameArg+1)],{stdio:'inherit',env:{...process.env,...env}});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Game bridge check failed: '+code)));});}
- bridge.close();app.exit(0);
+ const bitmap=Buffer.alloc(64*64*4);for(let i=0;i<bitmap.length;i+=4){bitmap[i]=180;bitmap[i+1]=80;bitmap[i+2]=90;bitmap[i+3]=255;}
+ const png='data:image/png;base64,'+nativeImage.createFromBitmap(bitmap,{width:64,height:64}).toPNG().toString('base64');
+ const jpeg='data:image/jpeg;base64,'+nativeImage.createFromDataURL(png).toJPEG(80).toString('base64');
+ const group={id:'group-test',name:'Building crew',owner:me.uuid,icon:png,members:[me.uuid,friend.uuid,stranger.uuid]};
+ let state={skins:[{id:'skin',name:'Orange monkey',data:png,slim:false}],capes:[],profiles:[]},messages=[];
+ const library=require('../electron/game-library').createGameLibrary({store:{loadData:async()=>state,saveData:async patch=>(state={...state,...patch})},nativeImage,pick:async()=>({name:'fixture.png',data:png}),lookupSkin:async()=>({name:'Fixture',data:png,slim:false}),uploadSkin:async()=>({ok:true}),changed:()=>bridge.broadcast('store:changed')});
+ library.avatar=async()=>({data:png});
+ const net={isConnected:()=>true,friends:async()=>({friends:[friend]}),requests:async()=>({requests:[]}),groups:async()=>({groups:[group]}),groupMembers:async()=>({members:[me,friend,stranger]}),groupHistory:async()=>({messages:[{id:'msg',from:stranger.uuid,name:stranger.name,t:'Our base!',at:Date.now()}]}),history:async()=>({messages:[]}),send:async(...args)=>messages.push(args)};
+ bridge=require('../electron/game-ui').createGameUI({net,services:()=>({account:()=>me,library,screenshots:{list:async()=>({items:[{id:'shot',name:'World.png',profile:'Archived profile',thumbnail:jpeg,created:Date.now()}],total:1,hasMore:false}),image:async()=>({data:jpeg})}})});
+ const env=await bridge.session('test',{uuid:me.uuid}),headers={Authorization:'Bearer '+env.MONKEY_UI_TOKEN,'Content-Type':'application/json'};
+ const post=async(route,body)=>{const r=await fetch(env.MONKEY_UI_URL+route,{method:'POST',headers,body:JSON.stringify(body)});const data=await r.json();assert.equal(r.status,200,JSON.stringify(data));return data;};
+ assert.equal(BrowserWindow.getAllWindows().length,0);assert.equal((await post('/social',{})).groups[0].name,'Building crew');assert.equal((await post('/screenshots/list',{})).items[0].name,'World.png');
+ assert.equal((await post('/library/list',{kind:'skin'})).items[0].name,'Orange monkey');const item=(await post('/library/item',{kind:'skin',id:'skin'})).item;assert.equal(item.data,png);
+ const added=await post('/library/save',{kind:'cape',item:{name:'Test cape',data:png}});assert.equal(nativeImage.createFromDataURL(added.item.data).getSize().height,32);
+ await post('/library/equip',{kind:'cape',id:added.item.id});assert.equal(state.activeCape,added.item.id);await post('/library/delete',{kind:'cape',id:added.item.id});assert.equal(state.capes.length,0);
+ assert.equal(BrowserWindow.getAllWindows().length,0);assert.equal(messages.length,0);console.log('PASS native data API, shared library mutations and no hidden browser windows');
+ const gameArg=process.argv.indexOf('--game');if(gameArg>=0){const cp=require('node:child_process');await new Promise((resolve,reject)=>{const child=cp.spawn('node',['tools/smoke-game.cjs',...process.argv.slice(gameArg+1)],{stdio:'inherit',env:{...process.env,...env}});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Native game check failed: '+code)));});}
+ assert.equal(messages.length,0);assert.equal(BrowserWindow.getAllWindows().length,0);bridge.close();app.exit(0);
 }).catch(e=>{console.error(e);bridge?.close();app.exit(1);});
-setTimeout(()=>{console.error('Bridge test timed out');bridge?.close();app.exit(1);},process.argv.includes('--game')?900000:90000).unref();
+setTimeout(()=>{console.error('Native data test timed out');bridge?.close();app.exit(1);},process.argv.includes('--game')?900000:90000).unref();

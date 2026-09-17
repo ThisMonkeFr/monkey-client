@@ -87,7 +87,7 @@ See RELEASE-NOTES.md for the mod 0.4.0 bundle, saved themes, detailed background
 
 The default font is Minecraft. Full-page animated backgrounds follow the current accent on every tab. Profile settings include Change version, which updates installed mods and collects unavailable builds in one Disable/Delete dialog. New profiles inherit the currently selected profile's options, shader configuration, resource packs and shader packs without moving the originals.
 
-The launcher bundles Monkey Client 0.5.0 for eight Fabric and seven Forge combinations. `bundled/monkeyclient.json` pins each artifact to one Minecraft version and loader with a SHA-256 hash. Forge 26.3 is unavailable upstream and is not offered. Run `npm test` for launcher regressions and `npm run dist -- --win nsis --x64 --publish never` to produce the Windows installer. The source archive includes the matching mod JARs.
+The launcher bundles Monkey Client 0.9.0 for eight Fabric and seven Forge combinations. `bundled/monkeyclient.json` pins each artifact to one Minecraft version and loader with a SHA-256 hash. Forge 26.3 is unavailable upstream and is not offered. Run `npm test` for launcher regressions and `npm run dist -- --win nsis --x64 --publish never` to produce the Windows installer. The source archive includes the matching mod JARs.
 
 ## Release 0.8.0
 
@@ -101,6 +101,6 @@ Same-profile concurrent launches, human-readable instance folders, inherited in-
 
 Profile settings offer exact-version performance presets; see [PERFORMANCE.md](PERFORMANCE.md). Run `npm test` for 58 regression tests. Runtime verification creates fresh worlds, enables modules, checks textures and the actual pause-menu/settings buttons, and captures a 4K frame. See [RELEASE-NOTES.md](RELEASE-NOTES.md) for scope and limitations.
 
-## Release 0.10.0
+## Release 0.11.0
 
-Microsoft direct sign-in, full in-game Friends/Screenshots/Skins tabs, group member lists, profile codes and presets, screenshot archives/deletion and dependency approval are included. The bundle contains all 15 mod 0.8.0 builds with stable creative flight and corrected 26.3 editor input. Keep the launcher running (hidden is fine) for the in-game launcher tabs. See RELEASE-NOTES.md for verification and limits.
+Microsoft direct sign-in, full in-game Friends/Screenshots/Skins tabs, group member lists, profile codes and presets, screenshot archives/deletion and dependency approval are included. The bundle contains all 15 mod 0.9.0 builds with stable creative flight and corrected 26.3 editor input. The in-game tabs are native Minecraft screens; keep the launcher running (hidden is fine) for shared data and authentication. No hidden browser window or streamed UI is used. See RELEASE-NOTES.md for verification and limits.

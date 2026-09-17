@@ -15,9 +15,22 @@ test('dependency resolution is recursive, exact-version and avoids bundled loade
  const fetch=async url=>({ok:true,json:async()=>url.includes('/version/')?versions[url.split('/').pop()]:{title:url.split('/').pop()}});
  const rows=await resolve(profile,version('root',[{dependency_type:'required',project_id:'P7dR8mSH'},{dependency_type:'required',version_id:'dep'}]),fetch);assert.deepEqual(rows.map(r=>r.projectId),['child','dep']);versions.child.game_versions=['1.21.9'];await assert.rejects(resolve(profile,version('root',[{dependency_type:'required',version_id:'child'}]),fetch),/compatible/);
 });
-test('in-game bridge requires per-session token, rejects web origins and limits inputs',async t=>{
- const events=[];class Window{constructor(){this.dead=false;this.webContents=new EventEmitter();Object.assign(this.webContents,{setFrameRate:()=>{},setWindowOpenHandler:()=>{},startPainting:()=>{},stopPainting:()=>{},isDestroyed:()=>false,sendInputEvent:e=>events.push(e),insertText:text=>events.push(text)});}async loadFile(){this.webContents.emit('paint',null,null,{toPNG:()=>Buffer.from('png-fixture')});}isDestroyed(){return this.dead;}destroy(){this.dead=true;}}
- const bridge=require('../electron/game-ui').createGameUI({BrowserWindow:Window,net:{}});t.after(()=>bridge.close());const env=await bridge.session('fixture'),url=env.MONKEY_UI_URL,headers={Authorization:'Bearer '+env.MONKEY_UI_TOKEN,'Content-Type':'application/json'};
- assert.equal((await fetch(url+'/frame')).status,401);assert.equal((await fetch(url+'/frame',{headers:{...headers,Origin:'https://example.com'}})).status,401);
- const post=(route,b)=>fetch(url+route,{method:'POST',headers,body:JSON.stringify(b)});assert.equal((await post('/open',{tab:'play'})).status,400);assert.equal((await post('/open',{tab:'friends'})).status,200);assert.equal(await (await fetch(url+'/frame',{headers})).text(),'png-fixture');assert.equal((await post('/input',{type:'eval',text:'bad'})).status,400);await post('/input',{type:'mouseDown',x:2000,y:-10});assert.equal(events[0].x,999);assert.equal(events[0].y,0);bridge.release('fixture');assert.equal((await fetch(url+'/frame',{headers})).status,401);
+test('native chat deletion removes the source and archive and rejects path traversal',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'monkey-chat-delete-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const dir=path.join(root,'instances','one');await fs.mkdir(path.join(dir,'screenshots'),{recursive:true});await fs.writeFile(path.join(dir,'screenshots','one.png'),PNG);
+ const service=require('../electron/screenshots').createScreenshotService({store:{loadData:async()=>({profiles:[{id:'one',name:'One'}]})},io:{root:()=>root,instance:id=>path.join(root,'instances',id)},nativeImage:{createThumbnailFromPath:async()=>({toJPEG:()=>PNG})},shell:{}});
+ await assert.rejects(service.removeSource(dir,'../secret.png'),/Invalid/);await service.removeSource(dir,'one.png');await assert.rejects(fs.stat(path.join(dir,'screenshots','one.png')),{code:'ENOENT'});assert.equal((await service.list()).total,0);
+ await assert.rejects(service.removeSource(dir,'one.png'),/already been deleted/);
+});
+test('native data bridge is token-scoped and never exposes streamed UI routes',async t=>{
+ const me={uuid:'a'.repeat(32),name:'Test'},calls=[];
+ const bridge=require('../electron/game-ui').createGameUI({net:{friends:async()=>({friends:[]}),requests:async()=>({requests:[]}),groups:async()=>({groups:[]}),isConnected:()=>true,send:async(...args)=>calls.push(args)},services:()=>({account:()=>me,library:{list:async()=>({items:[],total:0})}})});t.after(()=>bridge.close());
+ const env=await bridge.session('fixture',{uuid:me.uuid}),url=env.MONKEY_UI_URL,headers={Authorization:'Bearer '+env.MONKEY_UI_TOKEN,'Content-Type':'application/json'};
+ assert.equal((await fetch(url+'/events')).status,401);assert.equal((await fetch(url+'/events',{headers:{...headers,Origin:'https://example.com'}})).status,401);
+ const post=(route,b)=>fetch(url+route,{method:'POST',headers,body:JSON.stringify(b)});
+ assert.equal((await post('/open',{tab:'friends'})).status,404);assert.equal((await fetch(url+'/frame',{headers})).status,404);assert.equal((await post('/input',{type:'key'})).status,404);
+ assert.equal((await post('/library/list',{kind:'skin'})).status,200);assert.equal((await post('/social',{})).status,200);
+ assert.equal((await post('/net',{method:'disconnect',args:[]})).status,400);await post('/net',{method:'send',args:['friend','fixture message']});assert.equal(calls.length,1);
+ const before=await (await fetch(url+'/events',{headers})).json();bridge.broadcast('store:changed',{secret:'never sent'});const after=await (await fetch(url+'/events',{headers})).json();assert.equal(after.revision,before.revision+1);assert.deepEqual(Object.keys(after),['revision']);
+ me.uuid='b'.repeat(32);assert.equal((await post('/social',{})).status,400);assert.equal((await post('/net',{method:'send',args:['friend','wrong account']})).status,400);assert.equal(calls.length,1);
+ bridge.release('fixture');assert.equal((await fetch(url+'/events',{headers})).status,401);
 });

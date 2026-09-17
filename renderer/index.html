@@ -626,8 +626,6 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
 /* ============================================================
    Monkey Client — renderer
    ============================================================ */
-const IN_GAME=location.hash.startsWith('#game-');
-if(IN_GAME){document.body.classList.add('in-game');const style=document.createElement('style');style.textContent='.in-game .rail,.in-game .tb{display:none!important}.in-game #app{grid-template-columns:1fr;grid-template-rows:1fr}.in-game .main{grid-column:1;grid-row:1}.in-game .page{animation:none!important}.in-game .fr-layout.has-members{grid-template-columns:210px minmax(280px,1fr) 175px}';document.head.appendChild(style);}
 const DESKTOP = !!(window.monkey && window.monkey.desktop);
 let netConnected = false;
 
@@ -751,7 +749,7 @@ async function load(){
   try{ const r = await window.storage.get('monkey:state'); if(r&&r.value) Object.assign(S, JSON.parse(r.value)); }
   catch(e){ if(mem.state) Object.assign(S, mem.state); }
 }
-if(DESKTOP&&window.monkey.store.onChanged)window.monkey.store.onChanged(data=>{const current=persistable();for(const [k,v] of Object.entries(data||{}))if(k in current&&JSON.stringify(current[k])===JSON.stringify(persistedState[k])){S[k]=v;persistedState[k]=JSON.parse(JSON.stringify(v));}render();});
+if(DESKTOP&&window.monkey.store.onChanged)window.monkey.store.onChanged(data=>{const beforeSkin=JSON.stringify(S.skins.find(s=>s.id===S.activeSkin)),beforeCape=JSON.stringify(S.capes.find(c=>c.id===S.activeCape));const current=persistable();for(const [k,v] of Object.entries(data||{}))if(k in current&&JSON.stringify(current[k])===JSON.stringify(persistedState[k])){S[k]=v;persistedState[k]=JSON.parse(JSON.stringify(v));}const skin=S.skins.find(s=>s.id===S.activeSkin);if(skin?.data&&JSON.stringify(skin)!==beforeSkin){S.mySkin={data:skin.data,slim:!!skin.slim};spinLoad(skin.data);}if(JSON.stringify(S.capes.find(c=>c.id===S.activeCape))!==beforeCape)spinCape();render();});
 
 /* ---------- helpers ---------- */
 const $  = s => document.querySelector(s);
@@ -1171,9 +1169,9 @@ function spinAttach(){
     const tick=(now)=>{
       if(!document.getElementById('spin')){SPIN.raf=null;return;}
       const dt=Math.min(.05,(now-prev)/1000); prev=now;
-      if(!(document.hidden&&!IN_GAME)&&S.uiAnim&&!matchMedia('(prefers-reduced-motion: reduce)').matches)SPIN.t+=dt;
+      if(!document.hidden&&S.uiAnim&&!matchMedia('(prefers-reduced-motion: reduce)').matches)SPIN.t+=dt;
       if(SPIN.idle && !SPIN.drag) SPIN.yaw=-.35+Math.sin(SPIN.t*.35)*.18;
-      if(!(document.hidden&&!IN_GAME) && S.uiAnim!==false && !matchMedia('(prefers-reduced-motion: reduce)').matches && now-(SPIN.lastPaint||0)>(document.hasFocus()?(PlayerGPU.available?Math.max(1000/60,(SPIN.cost||0)*2):66):100)){SPIN.lastPaint=now;spinDraw();}
+      if(!document.hidden && S.uiAnim!==false && !matchMedia('(prefers-reduced-motion: reduce)').matches && now-(SPIN.lastPaint||0)>(document.hasFocus()?(PlayerGPU.available?Math.max(1000/60,(SPIN.cost||0)*2):66):100)){SPIN.lastPaint=now;spinDraw();}
       SPIN.raf=requestAnimationFrame(tick);
     };
     SPIN.raf=requestAnimationFrame(tick);
@@ -1373,7 +1371,7 @@ function bgAttach(){
       if(c){
         if(c.parentElement && (BG.layoutW!==c.parentElement.clientWidth||BG.layoutH!==c.parentElement.clientHeight)) fit();
         const moving=bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if(!(document.hidden&&!IN_GAME)&&(BG.dirty||moving)&&now-(BG.lastPaint||0)>(document.hasFocus()?Math.max(1000/30,(BG.cost||0)*3):100)){BG.dirty=false;
+        if(!document.hidden&&(BG.dirty||moving)&&now-(BG.lastPaint||0)>(document.hasFocus()?Math.max(1000/30,(BG.cost||0)*3):100)){BG.dirty=false;
           const elapsed=Math.min(.1,(now-(BG.lastPaint||now))/1000);BG.lastPaint=now;
           const began=performance.now();bgFrame(bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches?elapsed:0);BG.cost=(BG.cost||0)*.85+(performance.now()-began)*.15;
         }
@@ -2126,7 +2124,7 @@ function hydrateSkins(){
 function cardLoop(now){
   if(S.tab!=='skins'){CARDS.raf=null;CARDS.items=[];CARDS.io?.disconnect();return;}
   CARDS.raf = requestAnimationFrame(cardLoop);
-  if(S.tab!=='skins' || (document.hidden&&!IN_GAME)) return;
+  if(S.tab!=='skins' || document.hidden) return;
   if(now - CARDS.last < 80) return;                 // ~25fps is plenty here
   const dt = Math.min(.1, (now - CARDS.last)/1000);
   CARDS.last = now;
@@ -3534,6 +3532,6 @@ window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)lo
   }
   render();
   }catch(error){console.error(error);render();toast("Some launcher data could not load. "+error.message,"err");}
-  finally{if(IN_GAME)go(['friends','screenshots','skins'].includes(location.hash.slice(6))?location.hash.slice(6):'friends');await finishBoot();}
+  finally{await finishBoot();}
 })();
 </script>

@@ -43,8 +43,8 @@ async function main(){
   await wait(1000);const png=await fsp.readFile(screenshot),width=png.readUInt32BE(16),height=png.readUInt32BE(20);
   if(width!==3840||height!==2160)throw Error(`Expected 4K, received ${width}x${height}`);
   if(!text.includes('Monkey Client ready'))throw Error('Client initialization message was missing');
-  for(const marker of ['RESOURCES_OK','WORLD_JOINED','PAUSE_MENU','MENU_OPEN','MODULE_GRID','INPUT_PASS','FLIGHT_PASS','WORLD_PASS'])if(!text.includes('MONKEY_QA_'+marker))throw Error('Missing world check: '+marker);
-  if(process.env.MONKEY_UI_URL&&!text.includes('MONKEY_QA_BRIDGE_PASS'))throw Error('In-game launcher texture was never displayed');
+  for(const marker of ['RESOURCES_OK','WORLD_JOINED','PAUSE_MENU','MENU_OPEN','MODULE_GRID','INPUT_PASS','FLIGHT_PASS','NATIVE_FRIENDS','NATIVE_GALLERY','NATIVE_SKINS','SCREENSHOT_CHAT_PASS','WORLD_PASS'])if(!text.includes('MONKEY_QA_'+marker))throw Error('Missing world check: '+marker);
+  if(process.env.MONKEY_UI_URL&&!text.includes('MONKEY_QA_BRIDGE_PASS'))throw Error('Native shared data screens did not load');
   await wait(3000);if(exited)throw Error('Game exited after capture:\n'+text.slice(-16000));
   cp.spawnSync('import',['-window','root',path.join(dir,'display-world.png')],{timeout:10000});
   console.log(`PASS ${version} ${loader}: fresh world joined, all modules enabled, resources resolved, pause and Monkey menus opened; F2 saved ${width}x${height}; game remained alive`);

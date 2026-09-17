@@ -8,7 +8,7 @@ const game = require('./game/launch');
 const mods = require('./game/mods');
 const { autoUpdater } = require('electron-updater');
 
-const gameUI=require('./game-ui').createGameUI({BrowserWindow,net});
+const gameUI=require('./game-ui').createGameUI({net,services:()=>({account,library:gameLibrary,screenshots})});
 let win = null;
 /* Several Minecraft accounts can be signed in; one is active at a time. */
 let accounts = [];         // [{ name, uuid, accessToken, expiresAt, refreshToken }]
@@ -215,7 +215,7 @@ ipcMain.handle('mc:lookup', async (_e, name) => {
 /* Fetch a player's actual skin texture plus whether it uses the slim (Alex)
    model. Mojang's session server is CORS-blocked in the renderer, so it has
    to happen here. */
-ipcMain.handle('mc:skin', async (_e, name) => {
+async function lookupSkin(name) {
   try {
     const p = await mc.lookupPlayer(name);
     if (!p) return { error: 'notfound' };
@@ -245,19 +245,20 @@ ipcMain.handle('mc:skin', async (_e, name) => {
       cape
     };
   } catch (e) { return { error: 'unavailable' }; }
-});
+}
+ipcMain.handle('mc:skin',(_e,name)=>lookupSkin(name));
 
-ipcMain.handle('mc:upload-skin', async (_e, { data, variant }) => {
+async function uploadSkin(uuid, { data, variant }) {
 
   try {
-    const uuid=activeUuid;
     const token = await liveToken(uuid);
     const buf = Buffer.from(String(data).split(',').pop(), 'base64');
     const profile = await mc.uploadSkin(token, buf, variant);
     const a = accounts.find(a=>a.uuid===uuid); if (a) a.skins = profile.skins || a.skins;
     return { ok: true };
   } catch (e) { return { ok: false, message: e.message }; }
-});
+}
+ipcMain.handle('mc:upload-skin',(_e,data)=>uploadSkin(activeUuid,data));
 
 const running = new Map();
 const recentLogs = new Map();
@@ -313,7 +314,7 @@ ipcMain.handle('game:launch',async(_e,payload)=>{
         if(image.getSize().width>2048)throw Error('Cape texture is too large (maximum width 2048).');return image.toPNG();
       });
     }
-    const gameEnvironment=await gameUI.session(instanceId);
+    const gameEnvironment=await gameUI.session(instanceId,{uuid:selectedAccount.uuid,gameDir:dir,profileId:profile.id});
     const processInfo=await game.launch(profile,{name:selectedAccount.name,uuid:selectedAccount.uuid,accessToken:token},progress,ev=>{
       if(ev.type==='log'){record.logs.push(ev.line);if(record.logs.length>LOG_MAX)record.logs.shift();return;}
       if(ev.logPath){record.logPath=ev.logPath;recentLogPaths.set(instanceId,ev.logPath);}
@@ -393,7 +394,7 @@ ipcMain.handle('shell:open', (_e, url) => {
   if (/^https:\/\//.test(url)) shell.openExternal(url);
 });
 
-ipcMain.handle('dialog:pick-png', async (_e, anyImage) => {
+async function pickPng(anyImage) {
   const r = await dialog.showOpenDialog(win, {
     properties: ['openFile'],
     filters: anyImage
@@ -402,10 +403,13 @@ ipcMain.handle('dialog:pick-png', async (_e, anyImage) => {
   });
   if (r.canceled || !r.filePaths[0]) return null;
   const fs = require('fs/promises');
+  const stat=await fs.stat(r.filePaths[0]);if(stat.size>8*1024*1024)throw Error('Choose an image smaller than 8 MB.');
   const buf = await fs.readFile(r.filePaths[0]);
   const ext = path.extname(r.filePaths[0]).slice(1).toLowerCase();
   const mime = { jpg: 'jpeg', jpeg: 'jpeg', webp: 'webp', gif: 'gif' }[ext] || 'png';
   return { name: path.basename(r.filePaths[0]), data: `data:image/${mime};base64,` + buf.toString('base64') };
-});
+}
+ipcMain.handle('dialog:pick-png',(_e,anyImage)=>pickPng(anyImage));
+const gameLibrary=require('./game-library').createGameLibrary({store,nativeImage:require('electron').nativeImage,pick:pickPng,lookupSkin,uploadSkin,changed:saved=>send('store:changed',saved)});
 
 app.on('before-quit',()=>gameUI.close());

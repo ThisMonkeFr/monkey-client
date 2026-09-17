@@ -75,6 +75,22 @@ function createScreenshotService({store,io,nativeImage,shell}){
   const original=origins.get(id);if(original){const stat=await fs.lstat(original).catch(()=>null);if(stat?.isFile()&&!stat.isSymbolicLink())await fs.unlink(original);}
   await fs.writeFile(path.join(archive,id+'.json'),JSON.stringify({id,deleted:true}));await fs.unlink(file);files.delete(id);origins.delete(id);return true;
  });}
- return {list:options=>serial(()=>collect(options)),preserve:()=>serial(()=>collect({limit:1})),open,attachment,remove};
+ async function image(id){
+  const file=files.get(id);if(!file)throw Error('Refresh Screenshots before opening this image.');
+  const st=await fs.lstat(file);if(!st.isFile()||st.isSymbolicLink()||st.size>48*1024*1024)throw Error('Screenshot unavailable.');
+  let image=nativeImage.createFromPath(file);if(image.isEmpty())throw Error('Could not read screenshot');
+  if(image.getSize().width>1920)image=image.resize({width:1920});
+  return {data:'data:image/png;base64,'+image.toPNG().toString('base64')};
+ }
+ async function removeSource(gameDir,name){
+  if(!gameDir||typeof name!=='string'||name!==path.basename(name)||!name.toLowerCase().endsWith('.png'))throw Error('Invalid screenshot');
+  const root=path.resolve(gameDir,'screenshots'),file=path.resolve(root,name);
+  if(path.dirname(file)!==root)throw Error('Invalid screenshot');
+  await serial(()=>collect({limit:1}));
+  const id=[...origins].find(([,source])=>path.resolve(source)===file)?.[0];
+  if(!id||!files.has(id))throw Error('This screenshot has already been deleted or is still being saved.');
+  return remove(id);
+ }
+ return {list:options=>serial(()=>collect(options)),preserve:()=>serial(()=>collect({limit:1})),open,attachment,remove,image,removeSource};
 }
 module.exports={createScreenshotService};
