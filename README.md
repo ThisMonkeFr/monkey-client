@@ -36,12 +36,10 @@ renderer/
 
 ```
 <userData>/shared/              assets, libraries, versions, java
-<userData>/instances/<id>/      saves, mods, config, natives
+<userData>/instances/<profile name>/      saves, mods, config, natives
 ```
 
-Profiles are isolated: mods and worlds never leak between them. Immutable game
-files are shared, so a second profile on the same version downloads almost
-nothing.
+Profiles have separate worlds and mods. New profiles inherit selected settings and packs from the current profile. Immutable game files are shared. Concurrent copies of one profile keep separate worlds under its `sessions/` directory.
 
 ## Java
 
@@ -96,3 +94,9 @@ The launcher bundles Monkey Client 0.5.0 for eight Fabric and seven Forge combin
 Monkey is the default menu style; top and side navigation follow your theme. Screenshots brings every saved profile's captures into one gallery, and the integrated mod captures F2 screenshots at 4K. Multiple profiles can run together after confirmation. Profile deletion removes its managed instance files, and updates use a larger download/install dialog.
 
 Launch fixes cover the exact Java major, native CPU filtering, Fabric library overrides, Forge startup, and full crash logs. The launcher bundles all 15 Monkey Client 0.6.0 builds. Run `npm test` for 51 regression checks. The manually dispatched Runtime verification workflow checks the renderer and launches version-specific clients in a virtual display.
+
+## Release 0.9.0
+
+Same-profile concurrent launches, human-readable instance folders, inherited in-game module profiles, screenshot messages and required-name/icon group chats are included. The player preview uses a reusable GPU renderer, sharper artwork and theme glow with adaptive frame pacing. All 15 bundled mod builds are version 0.7.0.
+
+Profile settings offer exact-version performance presets; see [PERFORMANCE.md](PERFORMANCE.md). Run `npm test` for 58 regression tests. Runtime verification creates fresh worlds, enables modules, checks textures and the actual pause-menu/settings buttons, and captures a 4K frame. See [RELEASE-NOTES.md](RELEASE-NOTES.md) for scope and limitations.

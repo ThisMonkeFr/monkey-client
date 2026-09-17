@@ -1,35 +1,35 @@
-# Monkey Client 0.8.0 / mod 0.6.0
+# Monkey Client 0.9.0 / mod 0.7.0
 
-## Game launch fixes
+## Game fixes and controls
 
-- Select the exact Java major required by Minecraft: Java 21 for 1.21.x and Java 25 for 26.x. Windows uses java.exe with a hidden console so early errors are captured.
-- Load and extract natives for the current operating system and CPU only. Fabric libraries replace older vanilla copies, fixing duplicate ASM failures on 1.21.9 and 1.21.10.
-- Forge mod bytecode and mixin compatibility use Java 21, including builds for the Java 25 game. Early mod detection uses the discovery list before the runtime mod list exists.
-- Optional Starlight targets no longer prevent startup when Starlight is absent.
-- Java argument files avoid the Windows command-line length limit. Exported logs retain the full launch context with the access token redacted.
+- Forge receives version-correct resource-pack metadata so Monkey Client textures load. Cache files close safely during shutdown.
+- Minecraft 26.3 motion-blur shaders declare the stage interfaces required by RenderPearl.
+- The pause menu has a Monkey Client shortcut. Client Settings is centered vertically on the landing menu.
+- Creative flight boost defaults to holding Left Alt. Choose another key or Automatic in Toggle Sprint settings. The integrated server stays synchronized; multiplayer servers still control permitted speed.
+- Waypoints have an independent block color as well as a marker color.
+- F2 captures a real 3840 by 2160 frame, flashes briefly and shows its thumbnail in the bottom-right for about two seconds.
 
-## Modules and menu
+## Profiles and performance
 
-- Zoom smoothly fades the crosshair while preserving the opacity of both hands and the HUD.
-- Creative flight keeps the integrated server's ability speed in sync and restores the original speed when disabled. Multiplayer servers still control permitted movement speeds.
-- Custom elytra textures preserve Minecraft's normal wing transparency mask and geometry.
-- Monkey replaces the Custom menu-style name and is the default. Vanilla remains available. The module grid uses smaller cards, more columns, full-name tooltips, and a panel height that fits the selected category.
-- Right Shift opens the animated menu without drawing the corner-box hold indicator.
-- F2 renders a real 3840 by 2160 image using a temporary UHD framebuffer; ordinary rendering resumes after capture. The Fabrishot-inspired capture implementation is included in every build, with MIT attribution.
+- Launch the same profile more than once after confirmation. Additional sessions use separate writable folders and worlds, with independent process controls and logs.
+- Managed instance folders use profile names, with safe collision suffixes and migration of existing folders. Running folders are renamed after they stop; custom game directories remain player-managed.
+- New profiles inherit the selected profile's Minecraft options, resource packs, shader packs, Monkey Client settings and named module profiles.
+- Managed Monkey Client entries appear in the Mods tab for both loaders. Profile creation clearly highlights selected choices.
+- Balanced, Maximum and Off performance presets install checksum-verified, exact-version optimization releases. Player-installed mods are preserved and duplicate mod IDs are avoided. See PERFORMANCE.md for the per-version catalog and tradeoffs. No preset silently reduces graphics settings, and 2,000 FPS is not guaranteed.
+- The player preview uses a sharper GPU render with a software fallback, theme-colored glow, improved nameplate and new idle/walk/wave animations. Canvas sizes, caches and frame pacing are bounded; hidden animation pauses.
 
-## Launcher
+## Friends
 
-- Monkey is the default menu style, with the top bar, sidebar, controls and panels following the selected or custom theme. Vanilla remains selectable. An animated loading screen stays visible until startup data and fonts are ready.
-- Lower-resolution player previews, bounded texture/thumbnail caches, reduced animation frame rates, and paused off-tab/hidden work reduce rendering cost and retained memory.
-- The Screenshots tab combines captures from saved profiles, with profile filtering, pagination, small thumbnails, Open and Show in folder.
-- Starting another profile asks for confirmation. Each game has independent process state and logs; closing or crashing one leaves other instances running. The same profile or shared game folder cannot be opened twice.
-- Deleting a profile removes its managed instance folder. Running/shared folders are protected, a failed profile save restores the folder, and external custom game directories are preserved.
-- A prominent update dialog shows download progress, then offers Close and update. Existing Windows installs update without downloading setup again.
+- Attach screenshots from the gallery to direct messages or group conversations.
+- Group creation requires a name, an icon and selected friends. Owners can edit group details and members can leave.
+- The deployed MonkeyNet service checks conversation membership, attachment access and upload limits. No real friend messages were sent during testing.
 
-## Builds and verification
+## Distribution and verification
 
-Eight Fabric builds and seven Forge builds are included for 26.3, 26.2, 26.1.2, 26.1.1, 26.1, 1.21.11, 1.21.10 and 1.21.9. Forge 26.3 remains unavailable upstream. Each artifact has an exact game/loader entry and SHA-256 in monkeyclient.json.
+The launcher bundles mod 0.7.0 for eight Fabric and seven Forge combinations: 26.3, 26.2, 26.1.2, 26.1.1, 26.1, 1.21.11, 1.21.10 and 1.21.9. Forge 26.3 is unavailable upstream. Java 25 is used for 26.x and Java 21 for 1.21.x. Each bundle entry pins the exact game, loader and SHA-256.
 
-All 15 variants compile and pass native mixin audits. The 26.2 regression suites pass 203 checks plus 338 additional native/cache/resource checks. The launcher passes 51 tests covering version-specific artifacts, launch isolation, native/Java selection, profile deletion and rollback, screenshot pagination, rendering, migration and account persistence. Browser checks cover startup, the screenshot tab, settings, the orange theme and the minimum window size.
+All 15 variants compile and pass native mixin audits. The mod regression suites pass 210 checks plus 343 native/cache/resource checks; the launcher passes 58 tests. Backend integration tests run against PostgreSQL. Browser checks cover startup, themes, small windows, screenshots, profile creation and group conversations.
 
-All 15 builds passed real startup and F2 capture at 3840 by 2160, with continued rendering after capture. Runtime verification uses isolated offline profiles on Linux with software graphics; it is not a multiplayer, world-flight or shader-pack compatibility test. Custom capes remain local cosmetics.
+Runtime checks use fresh offline worlds on Linux with software graphics, enable all Monkey Client modules, click the pause-menu shortcut and Client Settings, and capture a 4K screenshot. These checks cover startup, world entry, resources and menu rendering; they do not establish hardware FPS, multiplayer movement or shader-pack compatibility.
+
+Existing installs receive the launcher update automatically and apply it when the launcher closes. The matching mod updates automatically before Minecraft starts; players do not need to download it separately.
