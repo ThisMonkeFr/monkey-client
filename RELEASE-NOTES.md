@@ -15,7 +15,7 @@
 - Custom elytra textures preserve Minecraft's normal wing transparency mask and geometry.
 - Monkey replaces the Custom menu-style name and is the default. Vanilla remains available. The module grid uses smaller cards, more columns, full-name tooltips, and a panel height that fits the selected category.
 - Right Shift opens the animated menu without drawing the corner-box hold indicator.
-- F2 renders a real 3840×2160 image using a temporary UHD framebuffer; ordinary rendering resumes after capture. The Fabrishot-inspired capture implementation is included in every build, with MIT attribution.
+- F2 renders a real 3840 by 2160 image using a temporary UHD framebuffer; ordinary rendering resumes after capture. The Fabrishot-inspired capture implementation is included in every build, with MIT attribution.
 
 ## Launcher
 
@@ -32,4 +32,4 @@ Eight Fabric builds and seven Forge builds are included for 26.3, 26.2, 26.1.2, 
 
 All 15 variants compile and pass native mixin audits. The 26.2 regression suites pass 203 checks plus 338 additional native/cache/resource checks. The launcher passes 51 tests covering version-specific artifacts, launch isolation, native/Java selection, profile deletion and rollback, screenshot pagination, rendering, migration and account persistence. Browser checks cover startup, the screenshot tab, settings, the orange theme and the minimum window size.
 
-Runtime verification uses isolated offline profiles on Linux with software graphics. It exercises initialization, real F2 capture, PNG dimensions and continued rendering after capture; it is not a multiplayer, world-flight or shader-pack compatibility test. Custom capes remain local cosmetics.
+All 15 builds passed real startup and F2 capture at 3840 by 2160, with continued rendering after capture. Runtime verification uses isolated offline profiles on Linux with software graphics; it is not a multiplayer, world-flight or shader-pack compatibility test. Custom capes remain local cosmetics.
