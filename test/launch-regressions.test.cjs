@@ -35,17 +35,19 @@ test('Fabric replaces the older vanilla ASM artifact without dropping native cla
 test('launch reservations, confirmation, exits and logs are independent across profiles',async t=>{
  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'monkey-launch-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
  const handlers=new Map(),events=new Map(),launches=[];
- const mocks={electron:{app:{requestSingleInstanceLock:()=>true,on:()=>{},whenReady:()=>({then:()=>{}}),getPath:()=>root},ipcMain:{handle:(key,fn)=>handlers.set(key,fn)},shell:{}},'electron-updater':{autoUpdater:{}},'./auth':{},'./store':{},'./minecraft':{},'./monkeynet':{},'./sessions':{createRefreshGate:()=>async()=>({accessToken:'test'})},'./game/mods':{sync:async()=>{}},'./game/io':{instance:id=>path.join(root,id)},'./game/profiles':{createProfileService:()=>({isBusy:()=>false})},'./screenshots':{createScreenshotService:()=>({})},'./game/launch':{launch:async(p,account,progress,event)=>{events.set(p.id,event);launches.push(p.id);return {pid:100+launches.length,kill:()=>event({type:'exit',code:0})};}}};
+ const mocks={electron:{app:{requestSingleInstanceLock:()=>true,on:()=>{},whenReady:()=>({then:()=>{}}),getPath:()=>root},ipcMain:{handle:(key,fn)=>handlers.set(key,fn)},shell:{}},'electron-updater':{autoUpdater:{}},'./auth':{},'./store':{},'./game/directories':{configure:()=>{}},'./game/instance-copies':{prepareCopy:async(p)=>({...p,sessionName:'Session 2',settings:{...p.settings,gameDir:path.join(root,p.id,'sessions','Session 2')}})},'./minecraft':{},'./monkeynet':{},'./sessions':{createRefreshGate:()=>async()=>({accessToken:'test'})},'./game/mods':{sync:async()=>{}},'./game/io':{instance:id=>path.join(root,id)},'./game/profiles':{createProfileService:()=>({isBusy:()=>false})},'./screenshots':{createScreenshotService:()=>({})},'./game/launch':{launch:async(p,account,progress,event)=>{events.set(launches.length,event);launches.push(p.id);event({type:'running'});return {pid:100+launches.length,kill:()=>event({type:'exit',code:0})};}}};
  const context=vm.createContext({require:name=>Object.hasOwn(mocks,name)?mocks[name]:require(name),process,console,setTimeout,setInterval,clearTimeout,__dirname:path.join(__dirname,'../electron')});
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../electron/main.js'),'utf8')+'\naccounts=[{uuid:"test",name:"Test"}];activeUuid="test";',context);
  const profile=id=>({id,name:id,loader:'vanilla',version:'26.2',settings:{}}),call=(p,confirmAdditional=false)=>handlers.get('game:launch')(null,{profile:p,confirmAdditional});
- assert.equal((await call(profile('a'))).ok,true);
- assert.equal((await call(profile('a'),true)).ok,false);
+ const a=await call(profile('a'));assert.equal(a.ok,true);
+ assert.equal((await call(profile('a'))).confirmAdditional,true);
+ const a2=await call(profile('a'),true);assert.equal(a2.ok,true);assert.notEqual(a2.instanceId,a.instanceId);
  assert.equal((await call(profile('b'))).confirmAdditional,true);
- assert.equal((await call(profile('b'),true)).ok,true);
- events.get('a')({type:'log',line:'log-a'});events.get('b')({type:'log',line:'log-b'});
- events.get('a')({type:'exit',code:1});
- const rows=await handlers.get('game:instances')();assert.equal(rows.length,1);assert.equal(rows[0].profileId,'b');assert.equal(handlers.get('game:log')(null,'b')[0],'log-b');
- assert.equal((await call({...profile('c'),settings:{gameDir:path.join(root,'b')}},true)).ok,false);
- assert.deepEqual(launches,['a','b']);await vm.runInContext('instanceSave',context);
+ const b=await call(profile('b'),true);assert.equal(b.ok,true);
+ events.get(0)({type:'log',line:'primary-a'});events.get(1)({type:'log',line:'copy-a'});events.get(2)({type:'log',line:'log-b'});
+ events.get(0)({type:'exit',code:1});
+ const rows=await handlers.get('game:instances')();assert.equal(rows.length,2);assert.equal(rows[0].profileId,'a');assert.equal(rows[0].sessionName,'Session 2');
+ assert.equal(handlers.get('game:log')(null,a.instanceId)[0],'primary-a');assert.equal(handlers.get('game:log')(null,a2.instanceId)[0],'copy-a');assert.equal(handlers.get('game:log')(null,b.instanceId)[0],'log-b');
+ handlers.get('game:kill')(null,a2.instanceId);assert.equal((await handlers.get('game:instances')()).length,1);
+ assert.deepEqual(launches,['a','a','b']);await vm.runInContext('instanceSave',context);
 });

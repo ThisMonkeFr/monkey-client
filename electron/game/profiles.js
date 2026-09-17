@@ -4,7 +4,7 @@ const {createReadStream}=require('fs');
 const {pipeline}=require('stream/promises');
 const {assertSupported}=require('./versions');
 const API='https://api.modrinth.com/v2';
-const MANAGED=/^(monkeyclient|fabric-api-managed)\.jar(?:\.disabled)?$/i;
+const MANAGED=/^(monkeyclient|fabric-api-managed|monkey-perf-[A-Za-z0-9]+)\.jar(?:\.disabled)?$/i;
 const fileName=name=>{if(typeof name!=='string'||name!==path.basename(name)||/[\\/:]/.test(name)||!name.toLowerCase().endsWith('.jar'))throw Error('Invalid mod filename');return name;};
 async function hash(file,algorithm='sha512'){const h=crypto.createHash(algorithm);await pipeline(createReadStream(file),h);return h.digest('hex');}
 const fingerprint=value=>crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -28,9 +28,9 @@ function createProfileService({io,store,fetchImpl=fetch,installManaged=async()=>
  async function copyFileMissing(from,to){try{const st=await fs.lstat(from);if(!st.isFile()||st.isSymbolicLink())return false;await fs.mkdir(path.dirname(to),{recursive:true});await fs.copyFile(from,to,require('fs').constants.COPYFILE_EXCL);return true;}catch(e){if(e.code==='ENOENT'||e.code==='EEXIST')return false;throw e;}}
  async function copyTree(from,to){let count=0;for(const entry of await fs.readdir(from,{withFileTypes:true}).catch(e=>{if(e.code==='ENOENT')return [];throw e;})){if(entry.isSymbolicLink())continue;const source=path.join(from,entry.name),target=path.join(to,entry.name);if(entry.isDirectory())count+=await copyTree(source,target);else if(entry.isFile()&&await copyFileMissing(source,target))count++;}return count;}
  async function inherit(sourceId,target){
-  assertSupported(target.version,target.loader);const to=directory(target);if(!sourceId)return {copied:0};const {profile:source}=await saved(sourceId);const from=directory(source);if(from===to)throw Error('A new profile needs its own game directory');if(isRunning(source.id))throw Error('Close the source game before copying its settings');
+  assertSupported(target.version,target.loader);const to=directory(target);if(!sourceId)return {copied:0};const {profile:source}=await saved(sourceId);const from=directory(source);if(from===to)throw Error('A new profile needs its own game directory');
   let copied=0;for(const name of ['options.txt','optionsof.txt','optionsshaders.txt','config/iris.properties','config/oculus.properties','config/shaders.properties'])if(await copyFileMissing(path.join(from,name),path.join(to,name)))copied++;
-  for(const folder of ['resourcepacks','shaderpacks'])copied+=await copyTree(path.join(from,folder),path.join(to,folder));return {copied};
+  for(const folder of ['resourcepacks','shaderpacks','config/monkeyclient'])copied+=await copyTree(path.join(from,folder),path.join(to,folder));return {copied};
  }
  async function plan(id,version,loader){
   assertSupported(version,loader);if(isRunning(id)||busy.has(id))throw Error('Close this profile before changing its version');
@@ -99,7 +99,7 @@ function createProfileService({io,store,fetchImpl=fetch,installManaged=async()=>
   try{
    const {data,profile}=await saved(id);directory(profile);
    root=path.resolve(io.instance(id));const parent=path.resolve(io.instance('.'));
-   if(path.dirname(root)!==parent||path.basename(root)!==id)throw Error('Invalid instance directory');
+   if(path.dirname(root)!==parent||path.basename(root)!==(profile.directoryName||id))throw Error('Invalid instance directory');
    for(const other of data.profiles||[])if(other.id!==id){const d=directory(other);if(d===root||d.startsWith(root+path.sep))throw Error('Another profile uses this instance folder. Change its game directory first.');}
    const stat=await fs.lstat(root).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
    if(stat?.isSymbolicLink())throw Error('This instance folder is a link. Its files were preserved.');

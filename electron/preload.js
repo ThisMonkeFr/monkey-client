@@ -68,7 +68,8 @@ contextBridge.exposeInMainWorld('monkey', {
   },
   screenshots: {
     list: (options) => ipcRenderer.invoke('screenshots:list',options),
-    open: (id,reveal=false) => ipcRenderer.invoke('screenshots:open',{id,reveal})
+    open: (id,reveal=false) => ipcRenderer.invoke('screenshots:open',{id,reveal}),
+    attach: (id,target) => ipcRenderer.invoke('screenshots:attach',{id,target})
   },
   update: {
     status: () => ipcRenderer.invoke('update:status'),

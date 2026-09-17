@@ -28,6 +28,8 @@ async function sync(profile, onProgress = () => {}) {
      keeps it current, which is what makes the launcher and the in-game
      client feel like one product. */
   const result = await clientmod.ensure(profile, onProgress);
+  if(profile.loader==='fabric'&&profile.settings?.clientMod===false&&require('./performance').selection(profile).length)await clientmod.ensureFabricApi(profile,dirFor(profile),onProgress);
+  await require('./performance').sync(profile,onProgress);
   if(result.installed)onProgress({stage:'mods',pct:90,detail:`Monkey Client ${result.installed} installed`});
 
   const mods = profile.mods || [];

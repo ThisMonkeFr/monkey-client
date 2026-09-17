@@ -16,7 +16,9 @@ const { spawn } = require('child_process');
 
 const root      = () => app.getPath('userData');
 const shared    = (...p) => path.join(root(), 'shared', ...p);
-const instance  = (id, ...p) => path.join(root(), 'instances', id, ...p);
+const profileDirectories=new Map();
+function setProfiles(profiles){profileDirectories.clear();for(const p of profiles)if(p.directoryName&&path.basename(p.directoryName)===p.directoryName&&!/[\\/:]/.test(p.directoryName)&&!['.','..'].includes(p.directoryName))profileDirectories.set(p.id,p.directoryName);}
+const instance  = (id, ...p) => path.join(root(), 'instances', profileDirectories.get(id)||id, ...p);
 const OS   = { win32: 'windows', darwin: 'osx', linux: 'linux' }[process.platform] || 'linux';
 const ARCH = process.arch === 'ia32' ? 'x86' : process.arch;
 
@@ -139,5 +141,5 @@ function mavenPath(name) {
   return path.join(group.replace(/\./g, '/'), artifact, version, `${artifact}-${version}${suffix}.jar`);
 }
 
-module.exports = { root, shared, instance, OS, ARCH, ensureDir, sha1, verified,
+module.exports = { root, shared, instance, setProfiles, OS, ARCH, ensureDir, sha1, verified,
                    download, pool, unzip, untar, allowed, mavenPath, fsp };

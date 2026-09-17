@@ -64,12 +64,24 @@ const declineRequest= (id) => http(`/friends/requests/${id}/decline`, { method: 
 const removeFriend  = (uuid) => http(`/friends/${uuid}`, { method: 'DELETE' });
 const history       = (uuid) => http(`/messages/${uuid}`);
 
-function send(uuid, text) {
+const groups = () => http('/groups');
+const createGroup = data => http('/groups', {method:'POST',body:data});
+const updateGroup = (id,data) => http(`/groups/${encodeURIComponent(id)}`, {method:'PATCH',body:data});
+const leaveGroup = id => http(`/groups/${encodeURIComponent(id)}/leave`, {method:'POST'});
+const groupHistory = id => http(`/groups/${encodeURIComponent(id)}/messages`);
+const uploadAttachment = data => http('/attachments', {method:'POST',body:data});
+const attachment = (id,preview=true) => http(`/attachments/${encodeURIComponent(id)}${preview?'?preview=1':''}`);
+function sendGroup(groupId,text,attachmentId) {
   if (!isConnected()) throw new Error('Not connected to MonkeyNet.');
-  socket.send(JSON.stringify({ type: 'message', to: uuid, text }));
+  socket.send(JSON.stringify({type:'group-message',groupId,text,attachmentId}));
+}
+function send(uuid, text, attachmentId) {
+  if (!isConnected()) throw new Error('Not connected to MonkeyNet.');
+  socket.send(JSON.stringify({ type: 'message', to: uuid, text, attachmentId }));
 }
 
 module.exports = {
   connect, disconnect, isConnected, friends, requests,
-  addFriend, acceptRequest, declineRequest, removeFriend, history, send
+  addFriend, acceptRequest, declineRequest, removeFriend, history, send,
+  groups, createGroup, updateGroup, leaveGroup, groupHistory, uploadAttachment, attachment, sendGroup
 };

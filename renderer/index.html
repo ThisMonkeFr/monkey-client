@@ -565,7 +565,7 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
 </style><link rel="stylesheet" href="theme-polish.css"><link rel="stylesheet" href="vanilla.css"><link rel="stylesheet" href="monkey.css">
 
 <body class="booting">
-<div id="boot-screen" role="status" aria-live="polite"><img src="../build/icon.png" alt=""><h1>Monkey Client</h1><p>Preparing your launcher…</p><div class="boot-track"><i></i></div></div>
+<div id="boot-screen" role="status" aria-live="polite"><img src="../build/icon.png" alt=""><h1>Monkey Client</h1><p>Preparing your launcherâ€¦</p><div class="boot-track"><i></i></div></div>
 <div id="app">
   <header class="tb">
     <div class="title">Monkey Client <i>0.8.0</i></div>
@@ -603,13 +603,14 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
 <div id="modal"></div>
 <input type="file" id="filepick" accept="image/png" hidden>
 <script src="model.js"></script>
+<script src="player-gpu.js"></script>
 <script src="blocks.js"></script>
 <script src="profile-icons.js"></script>
 <script src="backgrounds.js"></script>
 <script src="backgrounds-vanilla.js"></script>
 <script>
 /* ============================================================
-   Monkey Client — renderer
+   Monkey Client â€” renderer
    ============================================================ */
 const DESKTOP = !!(window.monkey && window.monkey.desktop);
 let netConnected = false;
@@ -723,7 +724,7 @@ async function save(){
     themePresets:S.themePresets, theme:S.theme, bg:S.bg, bgfx:S.bgfx, uiAnim:S.uiAnim, sound:S.sound,
     font:S.font, keepOpen:S.keepOpen, menuStyle:S.menuStyle
   };
-  if(DESKTOP){ try{ await window.monkey.store.save(blob); return; }catch(e){} }
+  if(DESKTOP){const saved=await window.monkey.store.save(blob);for(const p of saved?.profiles||[]){const live=S.profiles.find(x=>x.id===p.id);if(live)live.directoryName=p.directoryName;}return;}
   try{ await window.storage.set('monkey:state', JSON.stringify(blob)); }
   catch(e){ mem.state = blob; }
 }
@@ -946,7 +947,7 @@ function authScreen({code, uri, stage, error}){
           Enter it at <button data-act="open-verify" data-uri="${esc(uri)}"
             style="color:var(--leaf2);text-decoration:underline">${esc(uri)}</button></p>` : ''}
       <p style="text-align:center;color:var(--mute);font-size:12.5px;margin-top:14px">
-        ${esc(STAGE_TEXT[stage]||'Starting sign-in')}…</p>
+        ${esc(STAGE_TEXT[stage]||'Starting sign-in')}â€¦</p>
     </div>
     <div class="mf"><button class="btn" data-act="cancel-signin">Cancel</button>
       ${error?'<button class="btn pri" data-act="signin">Try again</button>':''}</div></div>`;
@@ -1019,7 +1020,7 @@ function signOut(){
 
 
 /* ============================================================
-   Sound — short synthesised blips. No audio files to ship, and
+   Sound â€” short synthesised blips. No audio files to ship, and
    nothing plays until the first click, per browser autoplay rules.
    ============================================================ */
 const SFX = { ctx:null };
@@ -1050,7 +1051,7 @@ const SOUND = {
 };
 
 /* ============================================================
-   Model — a small software renderer for the Minecraft player.
+   Model â€” a small software renderer for the Minecraft player.
    Shared by the Play stage and the skin editor.
    ============================================================ */
 const MODEL = window.MonkeyModel;
@@ -1083,17 +1084,21 @@ function spinDraw(){
     return;
   }
   const t=SPIN.t;
-  const sw=Math.sin(t*1.5)*0.085;          // slow, shallow limb sway
+  const phase=t%18,walk=phase>8&&phase<12?Math.sin((phase-8)/4*Math.PI):0;
+  const salute=phase>2&&phase<5?Math.sin((phase-2)/3*Math.PI):0;
+  const sw=Math.sin(t*(walk?7:1.5))*(.085+walk*.65);          // slow, shallow limb sway
   const opts={ kind:'skin', slim:(S.mySkin&&S.mySkin.slim)||false,
     yaw:SPIN.yaw, pitch:0, zoom:SPIN.zoom*(cv.width/460), centreY:18,
-    bob: Math.sin(t*3)*0.13,
-    limb:{armR:sw, armL:-sw, legR:-sw*0.7, legL:sw*0.7} };
+    bob: Math.sin(t*3)*0.13+Math.abs(Math.sin(t*7))*walk*.35,
+    limb:{armR:sw-salute*2.2, armL:-sw, legR:-sw*0.7, legL:sw*0.7} };
   let q=MODEL.build(SPIN.tex,opts,cv.width,cv.height);
   if(SPIN.cape){
     const cq=MODEL.build(SPIN.cape,{...opts, parts:MODEL.wornCape(SPIN.t,sw)},cv.width,cv.height);
     q=q.concat(cq).sort((a,b)=>a.depth-b.depth);
   }
-  MODEL.paint(cv,q,SPIN.hover?(S.theme||PRESETS.jungle).accent:null);
+  const began=performance.now();
+  if(!PlayerGPU.paint(cv,q))MODEL.paint(cv,q);
+  SPIN.cost=(SPIN.cost||0)*.85+(performance.now()-began)*.15;
   drawNametag(cv,opts);
 }
 
@@ -1105,7 +1110,7 @@ function drawNametag(cv, opts){
   const pt = MODEL.project([0, 35, 0], opts, cv.width, cv.height);
   const size = Math.max(12, Math.round(opts.zoom*2.6));
   c.save();
-  c.font = `${size}px Silkscreen, ui-monospace, monospace`;
+  c.font = `${size}px Minecraft, monospace`;
   c.textBaseline = 'top';
   const w = c.measureText(name).width;
   const badge = LOGO_IMG.complete && LOGO_IMG.naturalWidth ? size : 0;
@@ -1146,8 +1151,8 @@ function spinAttach(){
       if(!document.getElementById('spin')){SPIN.raf=null;return;}
       const dt=Math.min(.05,(now-prev)/1000); prev=now;
       if(!document.hidden&&S.uiAnim&&!matchMedia('(prefers-reduced-motion: reduce)').matches)SPIN.t+=dt;
-      if(SPIN.idle && !SPIN.drag) SPIN.yaw=-.35+Math.sin(SPIN.t*.35)*.12;
-      if(!document.hidden && S.uiAnim!==false && !matchMedia('(prefers-reduced-motion: reduce)').matches && now-(SPIN.lastPaint||0)>66){SPIN.lastPaint=now;spinDraw();}
+      if(SPIN.idle && !SPIN.drag) SPIN.yaw=-.35+Math.sin(SPIN.t*.35)*.18;
+      if(!document.hidden && S.uiAnim!==false && !matchMedia('(prefers-reduced-motion: reduce)').matches && now-(SPIN.lastPaint||0)>(document.hasFocus()?(PlayerGPU.available?Math.max(1000/60,(SPIN.cost||0)*2):66):100)){SPIN.lastPaint=now;spinDraw();}
       SPIN.raf=requestAnimationFrame(tick);
     };
     SPIN.raf=requestAnimationFrame(tick);
@@ -1335,7 +1340,7 @@ function bgAttach(){
   const cv=document.getElementById('bgfx'); if(!cv) return;
   applyBackgroundNow();
   const fit=()=>{ const p=cv.parentElement; if(!p) return;
-    const scale=Math.min(1,960/Math.max(1,p.clientWidth),640/Math.max(1,p.clientHeight));
+    const scale=Math.min(devicePixelRatio||1,1440/Math.max(1,p.clientWidth),900/Math.max(1,p.clientHeight));
     const w=Math.max(320,Math.round(p.clientWidth*scale)),h=Math.max(200,Math.round(p.clientHeight*scale));
     if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;BG.dirty=true;}BG.layoutW=p.clientWidth;BG.layoutH=p.clientHeight; };
   fit();
@@ -1347,9 +1352,9 @@ function bgAttach(){
       if(c){
         if(c.parentElement && (BG.layoutW!==c.parentElement.clientWidth||BG.layoutH!==c.parentElement.clientHeight)) fit();
         const moving=bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if(!document.hidden&&(BG.dirty||moving)&&now-(BG.lastPaint||0)>66){BG.dirty=false;
+        if(!document.hidden&&(BG.dirty||moving)&&now-(BG.lastPaint||0)>(document.hasFocus()?Math.max(1000/30,(BG.cost||0)*3):100)){BG.dirty=false;
           const elapsed=Math.min(.1,(now-(BG.lastPaint||now))/1000);BG.lastPaint=now;
-          bgFrame(bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches?elapsed:0);
+          const began=performance.now();bgFrame(bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches?elapsed:0);BG.cost=(BG.cost||0)*.85+(performance.now()-began)*.15;
         }
       }
       BG.raf=requestAnimationFrame(loop);
@@ -1403,33 +1408,29 @@ function pagePlay(){
   const p = sel(), L = S.launching, acct = S.account;
   /* Always the canvas on desktop: the texture arrives a moment later, and the
      nameplate should be there from the first frame either way. */
-  const stage = `<canvas id="spin" width="276" height="336" style="cursor:grab" aria-label="Player preview; drag to rotate, double-click to reset"></canvas>`;
+  const stage = `<canvas id="spin" width="552" height="672" style="cursor:grab;filter:drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 18px color-mix(in srgb,var(--accent) 45%,transparent))" aria-label="Player preview; drag to rotate, double-click to reset"></canvas>`;
 
   return `<div class="play">
     <div class="hero">
       <div class="stage">
         <div class="skinbox">${stage}</div>
-        ${S.instances.some(i=>i.profileId===p?.id)
-          ? `<button class="playbtn stop" data-act="kill" data-id="${p?.id||''}"><img class="mark" src="${LOGO_SRC}" alt="">
-              <span class="label">MINECRAFT IS RUNNING</span>
-              <span class="chev">${svg('x',22)}</span></button>`
-          : `<button class="playbtn" data-act="launch" ${L?'disabled':''}><img class="mark" src="${LOGO_SRC}" alt="">
-              <span class="label">${L?'LOADING':'PLAY'}</span>
-              <span class="chev">${svg('chevR',17)}${svg('chevR',17)}${svg('chevR',17)}</span></button>`}
+        <button class="playbtn" data-act="launch" ${L?'disabled':''}><img class="mark" src="${LOGO_SRC}" alt="">
+              <span class="label">${L?'LOADING':S.instances.some(i=>i.profileId===p?.id)?'PLAY AGAIN':'PLAY'}</span>
+              <span class="chev">${svg('chevR',17)}${svg('chevR',17)}${svg('chevR',17)}</span></button>
         <div class="prow-sel">
           ${S.pickerOpen ? `<div class="psel">
             ${S.profiles.length ? S.profiles.map(pr=>`
               <button data-act="pick-profile" data-id="${pr.id}" class="${pr.id===S.selId?'on':''}">
                 <span class="ic">${picon(pr.icon,20)}</span>
                 <span style="flex:1"><b style="font-size:13px;display:block">${esc(pr.name)}</b>
-                <span class="num" style="font-size:11px;color:var(--mute)">${pr.version} · ${cap(pr.loader)}</span></span>
+                <span class="num" style="font-size:11px;color:var(--mute)">${pr.version} Â· ${cap(pr.loader)}</span></span>
                 ${pr.id===S.selId?svg('check',15):''}</button>`).join('')
               : `<p style="padding:14px;color:var(--mute);font-size:12.5px;text-align:center">No profiles yet</p>`}
           </div>`:''}
           <button class="main-btn" data-act="toggle-picker">
             <span class="ic">${p?picon(p.icon,20):blockSvg('grass',20)}</span>
             <span style="flex:1"><b>${p?esc(p.name):'No profile selected'}</b>
-              <small class="num">${p?p.version+' · '+cap(p.loader):'Create one to start playing'}</small></span>
+              <small class="num">${p?p.version+' Â· '+cap(p.loader):'Create one to start playing'}</small></span>
             ${svg('chev',16)}</button>
           <button class="gearbtn" data-act="quick-settings" title="Profile settings">${svg('gear',17)}</button>
         </div>
@@ -1508,7 +1509,7 @@ async function launch(confirmAdditional=false){
   if(DESKTOP){
     if(!S.account){ toast('Sign in before launching','err'); signInModal(); return; }
     S.launching={pct:0, step:'Starting up'}; render();
-    const payload = plain(p);
+    await save();const payload = plain(p);
     if(S.keepOpen) payload.settings.closeOnLaunch = false;
     const r = await window.monkey.game.launch(payload,confirmAdditional);
     if(!r.ok){
@@ -1540,7 +1541,7 @@ function simulateLaunch(p){
         <div class="mh">${svg('mods',18)}<h3>Ready to hand off to Java</h3></div>
         <div class="mb"><div class="note warn">${svg('info',16)}<div>
           This is the browser preview. The desktop build downloads the game files and starts
-          Java for real — run it with <b style="color:var(--tx)">npm start</b>.</div></div></div>
+          Java for real â€” run it with <b style="color:var(--tx)">npm start</b>.</div></div></div>
         <div class="mf"><button class="btn pri" data-act="close">Got it</button></div></div>`);
     }
   },520);
@@ -1587,7 +1588,7 @@ function pageProfiles(){
         <div class="meta">
           <span class="tag num">${p.version}</span>
           <span class="tag ${p.loader==='fabric'?'leaf':''}">${cap(p.loader)}</span>
-          <span>${p.mods.length} mod${p.mods.length===1?'':'s'}</span><span>·</span><span>${ago(p.lastPlayed)}</span>
+          <span>${p.mods.length} mod${p.mods.length===1?'':'s'}</span><span>Â·</span><span>${ago(p.lastPlayed)}</span>
         </div>
       </div>
       <button class="btn ${p.id===S.selId?'':'pri'}" data-act="select-profile" data-id="${p.id}"
@@ -1634,7 +1635,7 @@ async function createProfile(s){
     settings:{ ram:4096, customJava:false, javaPath:'', customArgs:false,
       javaArgs:'-XX:+UseG1GC -XX:+ParallelRefProcEnabled', width:1280, height:720,
       fullscreen:false, gameDir:'', notes:'', closeOnLaunch:true } };
-  const button=$('[data-act="np-save"]');if(button){button.disabled=true;button.textContent='Copying settings…';}
+  const button=$('[data-act="np-save"]');if(button){button.disabled=true;button.textContent='Copying settingsâ€¦';}
   try{
     if(DESKTOP){await save();const result=await window.monkey.profiles.inherit(sourceId,plain(p));if(!result.ok)throw Error(result.message);}
     S.profiles.push(p);S.selId=p.id;await save();closeModal();render();toast(`Created ${p.name}`);
@@ -1652,7 +1653,7 @@ function settingsModal(id){
   const s = p.settings;
   const nav=[['general','gear','General'],['install','dl','Installation'],
     ['java','java','Java & memory'],['window','win','Window'],
-    ['monkey','skins','Monkey Client'],['advanced','link','Advanced']];
+    ['monkey','skins','Monkey Client'],['performance','gear','Performance'],['advanced','link','Advanced']];
   let body='';
 
   if(setTab==='general') body=`
@@ -1668,8 +1669,8 @@ function settingsModal(id){
     <button class="btn dang" data-act="s-delete">${svg('trash',15)}Delete this profile</button>`;
 
   if(setTab==='install') body=`
-    <div class="field"><label>Minecraft version</label><p>${p.version} · ${cap(p.loader)}</p>
-      <button class="btn" data-act="change-version">Change version…</button>
+    <div class="field"><label>Minecraft version</label><p>${p.version} Â· ${cap(p.loader)}</p>
+      <button class="btn" data-act="change-version">Change versionâ€¦</button>
       <p class="hint">Updates every installed mod and lets you disable or delete incompatible mods together.</p></div>
     <div class="field"><label for="sdir">Game directory</label>
       <input type="text" id="sdir" value="${esc(s.gameDir)}" placeholder="Default (isolated per profile)">
@@ -1718,6 +1719,13 @@ function settingsModal(id){
         The Monkey Client mod needs Fabric or Forge. Switch this profile's loader on the
         Installation tab to use it.</div></div>`}`;
 
+  if(setTab==='performance') body=`
+    <div class="field"><label for="performance-mode">Optimization preset</label><select id="performance-mode" data-act="s-performance">${[['balanced','Balanced · vanilla visuals'],['maximum','Maximum · extra culling'],['off','Off · Monkey Client only']].map(([k,n])=>`<option value="${k}" ${(s.performance||'balanced')===k?'selected':''}>${n}</option>`).join('')}</select></div>
+    <p class="hint">Installs compatible optimizations on your next launch. Balanced preserves vanilla visuals. Maximum can skip additional hidden faces and cache lighting updates.</p>
+    <p class="hint">${p.loader==='fabric'?'Sodium is included with Monkey Client. The preset also checks Lithium, FerriteCore, ImmediatelyFast, Entity Culling and Dynamic FPS for your exact version.':p.loader==='forge'?'Forge 1.21.9 and 1.21.10 support Entity Culling. The other supported Forge versions currently have no exact releases in this tested optimization catalog.':'Vanilla does not load optimization mods.'}</p>
+    <p class="hint">For maximum foreground FPS, turn VSync off and set Max Framerate to Unlimited in Minecraft. Keep your render distance, textures and shaders at the quality you prefer. Dynamic FPS reduces background usage when another game or window is active.</p>
+    <p class="hint">FPS depends on your hardware, world and graphics settings. No preset can guarantee 2,000 FPS.</p>`;
+
   if(setTab==='advanced') body=`
     <div class="field"><label>Pre-launch command</label>
       <input type="text" placeholder="Optional shell command run before the game starts"></div>
@@ -1754,13 +1762,13 @@ function versionModal(id){
   const v=versionChange;
   if(!loadersFor(v.version).includes(v.loader))v.loader='fabric';
   const rows=v.plan?.incompatible||[];
-  openModal(`<div class="modal" style="max-width:710px"><div class="mh"><h3>Change version · ${esc(p.name)}</h3>${v.busy?'':'<button class="btn ghost" data-act="version-cancel">'+svg('x',16)+'</button>'}</div>
+  openModal(`<div class="modal" style="max-width:710px"><div class="mh"><h3>Change version Â· ${esc(p.name)}</h3>${v.busy?'':'<button class="btn ghost" data-act="version-cancel">'+svg('x',16)+'</button>'}</div>
     <div class="mb">
-    ${v.busy?'<p id="version-progress">Checking installed mods…</p>':v.plan?`
-      <p>${rows.length} mod${rows.length===1?'':'s'} cannot run on ${v.version} · ${cap(v.loader)}.</p>
+    ${v.busy?'<p id="version-progress">Checking installed modsâ€¦</p>':v.plan?`
+      <p>${rows.length} mod${rows.length===1?'':'s'} cannot run on ${v.version} Â· ${cap(v.loader)}.</p>
       <div class="row" style="gap:8px;margin:14px 0"><button class="btn" data-act="version-all" data-choice="disable">Disable all</button><button class="btn dang" data-act="version-all" data-choice="delete">Delete all</button></div>
       ${rows.map(row=>`<div class="version-conflict"><div><b>${esc(row.title)}</b><small>${esc(row.reason)}</small></div><select aria-label="Action for ${esc(row.title)}" data-act="version-choice" data-key="${esc(row.key)}"><option value="disable" ${v.choices[row.key]==='disable'?'selected':''}>Disable</option><option value="delete" ${v.choices[row.key]==='delete'?'selected':''}>Delete</option></select></div>`).join('')}
-      <p class="hint">${v.plan.updates.length} compatible mod${v.plan.updates.length===1?'':'s'} will update automatically. Replaced files are saved in this profile’s backups folder.</p>`:`
+      <p class="hint">${v.plan.updates.length} compatible mod${v.plan.updates.length===1?'':'s'} will update automatically. Replaced files are saved in this profileâ€™s backups folder.</p>`:`
       <div class="field"><label for="version-target">Minecraft version</label><select id="version-target" data-act="version-target">${VERSIONS.map(id=>`<option value="${id}" ${v.version===id?'selected':''}>${id}</option>`).join('')}</select></div>
       <div class="field"><label for="version-loader">Mod loader</label><select id="version-loader" data-act="version-loader">${loadersFor(v.version).map(loader=>`<option value="${loader}" ${v.loader===loader?'selected':''}>${cap(loader)}</option>`).join('')}</select></div>
       ${v.version==='26.3'?'<p class="hint">Forge has not released a 26.3 build yet.</p>':''}
@@ -1781,7 +1789,7 @@ async function applyVersionChange(){
 }
 
 /* ============================================================
-   MODS — installed for this profile, or discover on Modrinth
+   MODS â€” installed for this profile, or discover on Modrinth
    ============================================================ */
 const MOD_TABS=[['mod','Mods'],['modpack','Modpacks'],['resourcepack','Resource packs'],
   ['shader','Shaders'],['datapack','Data packs']];
@@ -1818,9 +1826,9 @@ async function installMod(pid){
   if(!p){ toast('Select a profile first','err'); S.tab='profiles'; render(); return; }
   const hit = S.modResults.find(h=>h.project_id===pid); if(!hit) return;
   if(p.loader==='vanilla' && S.modTab==='mod'){
-    toast(`${p.name} is Vanilla — switch it to Fabric or Forge to install mods`,'err'); return; }
+    toast(`${p.name} is Vanilla â€” switch it to Fabric or Forge to install mods`,'err'); return; }
   if(p.mods.some(m=>m.projectId===pid)){ toast('Already installed on this profile','info'); return; }
-  toast(`Resolving ${hit.title}…`,'info');
+  toast(`Resolving ${hit.title}â€¦`,'info');
   try{
     const r = await fetch(`https://api.modrinth.com/v2/project/${pid}/version`
       +`?loaders=${encodeURIComponent(JSON.stringify([p.loader]))}`
@@ -1843,11 +1851,11 @@ async function installMod(pid){
 
 function modsHeader(p){
   return `<div class="h1">Mods</div>
-    <div class="sub">${p ? `Installing to <b style="color:var(--dim)">${esc(p.name)}</b> · ${p.version} · ${cap(p.loader)}`
-      : 'No profile selected — create one in Profiles first'}</div>
+    <div class="sub">${p ? `Installing to <b style="color:var(--dim)">${esc(p.name)}</b> Â· ${p.version} Â· ${cap(p.loader)}`
+      : 'No profile selected â€” create one in Profiles first'}</div>
     <div class="bartop"><div class="seg">
       <button data-act="modscope" data-k="installed" class="${S.modScope==='installed'?'on':'stone'}">
-        Installed${p&&p.mods.length?` · ${p.mods.length}`:''}</button>
+        Installed${p&&p.mods.length?` Â· ${p.mods.length}`:''}</button>
       <button data-act="modscope" data-k="browse" class="${S.modScope==='browse'?'on':'stone'}">Discover</button>
     </div>
     ${S.modScope==='installed'&&p?`<div style="flex:1"></div>
@@ -1862,14 +1870,14 @@ function pageInstalledMods(){
     <p>Mods belong to a profile. Make one, then come back.</p>
     <button class="btn pri" data-act="go-profiles">Go to profiles</button></div></div>`;
 
-  if(!p.mods.length && p.loader!=='fabric') return `<div class="page">${modsHeader(p)}<div class="empty">
+  if(!p.mods.length && !['fabric','forge'].includes(p.loader)) return `<div class="page">${modsHeader(p)}<div class="empty">
     <div class="ill">${svg('mods',70)}</div><h3>${esc(p.name)} has no mods</h3>
     <p>${p.loader==='vanilla'
       ? 'This is a Vanilla profile. Switch it to Fabric or Forge in profile settings to install mods.'
       : 'Search Modrinth and install straight into this profile.'}</p>
     <button class="btn pri" data-act="modscope" data-k="browse">${svg('search',15)}Find mods</button></div></div>`;
 
-  const managed = p.loader==='fabric' ? `
+  const managed = ['fabric','forge'].includes(p.loader) ? `
     <div class="mrow stone ${p.settings.clientMod===false?'off':''}">
       <img src="${LOGO_SRC}" alt="" style="object-fit:contain">
       <div class="body">
@@ -2035,20 +2043,20 @@ function pageSkins(){
     <div class="grid">
       <div class="scard add" data-act="upload-skin">
         <div style="width:46px;height:46px;border-radius:50%;background:var(--sel);display:grid;place-items:center">${svg('plus',22)}</div>
-        <b>Add a skin</b><span style="font-size:11.5px;color:var(--mute)">Upload a 64×64 PNG</span></div>
+        <b>Add a skin</b><span style="font-size:11.5px;color:var(--mute)">Upload a 64Ã—64 PNG</span></div>
       ${cards}</div>
     <div class="row" style="margin-top:30px;margin-bottom:12px">
       <div class="h5" style="flex:1;margin:0;border:0;padding:0">Capes</div>
       <button class="btn" data-act="upload-cape">${svg('dl',15)}Upload</button>
       <button class="btn pri" data-act="new-cape">${svg('edit',15)}Create cape</button></div>
     <div class="note warn" style="margin-bottom:16px">${svg('info',16)}<div>
-      Mojang only lets an account wear capes it already owns — no API accepts a custom one.
+      Mojang only lets an account wear capes it already owns â€” no API accepts a custom one.
       Capes added here are Monkey Client cosmetics: your selected cape is installed into your selected Fabric or Forge profile
       and rendered locally with vanilla cape movement.</div></div>
     <div class="grid">
       <div class="scard add" data-act="upload-cape" style="min-height:206px">
         <div style="width:46px;height:46px;border-radius:50%;background:var(--sel);display:grid;place-items:center">${svg('plus',22)}</div>
-        <b>Add a cape</b><span style="font-size:11.5px;color:var(--mute)">Upload a 64×32 PNG</span></div>
+        <b>Add a cape</b><span style="font-size:11.5px;color:var(--mute)">Upload a 64Ã—32 PNG</span></div>
       ${capeCards}</div></div>`;
 }
 /* Skin and cape cards use the same model renderer as the Play stage, turning
@@ -2154,7 +2162,7 @@ function pickFontInBrowser(){
 async function fetchSkin(){
   const inp=$('#ignq'); const name=(inp&&inp.value||'').trim();
   if(!name){ toast('Type a username first','err'); return; }
-  toast('Looking up '+name+'…','info');
+  toast('Looking up '+name+'â€¦','info');
   const r = await lookupPlayer(name);
   if(r.error==='notfound'){ toast(`No Minecraft account named ${name}`,'err'); return; }
   if(r.error){ toast('Mojang lookup is unreachable right now','err'); return; }
@@ -2181,30 +2189,6 @@ const MonkeyNet = {
   async sendRequest(ign){ return this.call('addFriend', ign); },
   async sendMessage(id,text){ return this.call('send', id, text); }
 };
-async function refreshNet(){
-  if(!netConnected) return;
-  const f=await MonkeyNet.call('friends'), r=await MonkeyNet.call('requests');
-  if(f.ok) S.friends=f.data.friends.map(u=>({id:u.uuid,ign:u.name,online:u.online,status:u.online?'Online':'Offline'}));
-  if(r.ok) S.requests=r.data.requests.map(x=>({id:x.id,ign:x.name,uuid:x.uuid}));
-  render();
-}
-function handleNetEvent(ev){
-  if(ev.type==='presence'){
-    const f=S.friends.find(x=>x.id===ev.uuid);
-    if(f){ f.online=ev.online; f.status=ev.online?'Online':'Offline'; render(); }
-  }
-  if(ev.type==='message'){
-    (S.chats[ev.from]=S.chats[ev.from]||[]).push({me:false,t:ev.text,at:ev.at});
-    save(); render();
-    if(S.openChat!==ev.from) toast(`${ev.name}: ${ev.text.slice(0,40)}`,'info');
-  }
-  if(ev.type==='message-sent'){
-    (S.chats[ev.to]=S.chats[ev.to]||[]).push({me:true,t:ev.text,at:ev.at}); save(); render();
-  }
-  if(ev.type==='friend-request'){ toast(`${ev.from.name} sent a friend request`,'info'); refreshNet(); }
-  if(ev.type==='friend-added'||ev.type==='friend-removed') refreshNet();
-  if(ev.type==='disconnected'){ netConnected=false; render(); toast('MonkeyNet disconnected','err'); }
-}
 function seedNet(){
   if(S.netSeeded || netConnected) return;
   S.friends=[{id:'f1',ign:'Technoblade',online:true,status:'In Jungle SMP'},
@@ -2216,49 +2200,6 @@ function seedNet(){
   S.netSeeded=true;
 }
 function chatTimestamp(at){const d=new Date(at),today=new Date();return d.toDateString()===today.toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleString([],{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
-function pageFriends(){
-  if(!S.account) return `<div class="page"><div class="locked">
-    <div class="ill" style="width:70px;height:70px;margin:0 auto 18px;color:var(--line2)">${svg('friends',70)}</div>
-    <h3 style="font-family:var(--pixel);font-size:16px;margin-bottom:10px">Friends needs your Minecraft account</h3>
-    <p style="color:var(--dim);font-size:13.5px;margin-bottom:20px">
-      Friend requests, online status and messages are tied to a Minecraft identity, so there is
-      nothing to show until you sign in.</p>
-    <button class="btn pri" data-act="signin">${svg('link',15)}Sign in to Minecraft</button></div></div>`;
-
-  const f = S.friends.find(x=>x.id===S.openChat);
-  const msgs = f ? (S.chats[f.id]||[]) : [];
-  const listSide = `<div class="fr-list">
-    <div class="hd">
-      <div class="row" style="margin-bottom:11px"><b style="flex:1;font-size:15px">Friends</b>
-        <button class="btn ghost" data-act="add-friend" title="Add a friend">${svg('plus',16)}</button></div>
-      <button class="btn stone" style="width:100%;justify-content:center" data-act="go-requests">
-        ${svg('bell',14)}Requests${S.requests.length?` · ${S.requests.length}`:''}</button></div>
-    <div class="fr-scroll">
-      ${S.friends.length ? S.friends.map(fr=>`
-        <button class="frow ${S.openChat===fr.id?'on':''}" data-act="open-chat" data-id="${fr.id}">
-          <img src="https://mc-heads.net/avatar/${encodeURIComponent(fr.ign)}/64" alt="">
-          <span style="flex:1;min-width:0"><b style="display:block;font-size:13.5px">${esc(fr.ign)}</b>
-            <span class="st ${fr.online?'on':''}">${esc(fr.status)}</span></span></button>`).join('')
-        : `<div style="text-align:center;padding:34px 16px">
-            <p style="color:var(--mute);font-size:12.5px;margin-bottom:14px">No friends added yet.</p>
-            <button class="btn stone" data-act="add-friend">${svg('plus',14)}Add a friend</button></div>`}
-    </div></div>`;
-  const chatSide = f ? `<div class="chat">
-      <div class="hd"><img src="https://mc-heads.net/avatar/${encodeURIComponent(f.ign)}/64" alt="">
-        <div style="flex:1"><b style="display:block;font-size:14.5px">${esc(f.ign)}</b>
-        <span class="st ${f.online?'on':''}" style="font-size:11.5px">${esc(f.status)}</span></div></div>
-      <div class="msgs" id="msgs">
-        ${msgs.length ? msgs.map(m=>`<div class="msg ${m.me?'me':'them'}">${esc(m.t)}
-          <time datetime="${new Date(m.at).toISOString()}" title="${esc(new Date(m.at).toLocaleString())}">${esc(chatTimestamp(m.at))}</time></div>`).join('')
-        : `<div style="margin:auto;text-align:center;color:var(--mute);font-size:12.5px">No messages yet. Say something.</div>`}
-      </div>
-      <div class="composer"><input id="msgin" placeholder="Message ${esc(f.ign)}" autocomplete="off">
-        <button class="btn pri" data-act="send-msg">${svg('send',15)}Send</button></div></div>`
-    : `<div style="display:grid;place-items:center;padding:30px"><div class="empty" style="margin:0">
-        <div class="ill">${svg('friends',70)}</div><h3>Pick someone to message</h3>
-        <p>Choose a friend on the left to open your conversation.</p></div></div>`;
-  return `<div class="page flush"><div class="fr-layout">${listSide}${chatSide}</div></div>`;
-}
 function addFriendModal(){
   openModal(`<div class="modal" style="max-width:440px">
     <div class="mh">${svg('plus',18)}<h3>Add a friend</h3>
@@ -2285,13 +2226,76 @@ function requestsModal(){
         <h3>No pending requests</h3><p>New requests land here as soon as someone adds you.</p></div>`}
     </div></div>`, {key:'requests'});
 }
-function sendMsg(){
-  const inp=$('#msgin'); if(!inp||!inp.value.trim()||!S.openChat) return;
-  const text=inp.value.trim(); inp.value='';
-  if(netConnected){ MonkeyNet.sendMessage(S.openChat,text); return; }
-  (S.chats[S.openChat]=S.chats[S.openChat]||[]).push({me:true,t:text,at:Date.now()});
-  save(); render(); toast('Saved locally — MonkeyNet is not connected','info');
+let chatGroups=[],chatDrafts=new Map(),chatImages=new Map(),chatImagesLoading=new Set(),groupDraft=null;
+function chatTarget(id=S.openChat){return id?.startsWith('group:')?{groupId:id.slice(6)}:{to:id};}
+async function openChat(id){S.openChat=id;render();if(!netConnected)return;const target=chatTarget(id),h=await MonkeyNet.call(target.groupId?'groupHistory':'history',target.groupId||target.to);if(h.ok){S.chats[id]=h.data.messages;render();}else toast(h.message,'err');}
+function receiveChat(id,message){const rows=S.chats[id]||[];if(!rows.some(m=>m.id&&m.id===message.id))rows.push(message);S.chats[id]=rows.slice(-100);save();render();}
+function handleNetEvent(ev){
+ if(ev.type==='presence'){const f=S.friends.find(x=>x.id===ev.uuid);if(f){f.online=ev.online;f.status=ev.online?'Online':'Offline';render();}}
+ if(ev.type==='message'||ev.type==='message-sent'||ev.type==='group-message'){
+  const id=ev.groupId?'group:'+ev.groupId:(ev.type==='message'?ev.from:ev.to),me=ev.type==='message-sent'||ev.from===S.account?.uuid?.replace(/-/g,'');
+  receiveChat(id,{id:ev.id,me,name:ev.name,t:ev.text,attachmentId:ev.attachmentId,at:ev.at});
+  if(!me&&S.openChat!==id)toast(`${ev.name}: ${ev.text?.slice(0,40)||'Screenshot'}`,'info');
+ }
+ if(ev.type==='message-error')toast(ev.message,'err');
+ if(['group-updated','groups-changed','friend-added','friend-removed'].includes(ev.type))refreshNet();
+ if(ev.type==='friend-request'){toast(`${ev.from.name} sent a friend request`,'info');refreshNet();}
+ if(ev.type==='disconnected'){netConnected=false;render();toast('MonkeyNet disconnected','err');}
 }
+async function refreshNet(){
+ if(!netConnected)return;
+ const [f,r,g]=await Promise.all([MonkeyNet.call('friends'),MonkeyNet.call('requests'),MonkeyNet.call('groups')]);
+ if(f.ok)S.friends=f.data.friends.map(u=>({id:u.uuid,ign:u.name,online:u.online,status:u.online?'Online':'Offline'}));
+ if(r.ok)S.requests=r.data.requests.map(x=>({id:x.id,ign:x.name,uuid:x.uuid}));
+ if(g.ok)chatGroups=g.data.groups;
+ render();
+}
+function pageFriends(){
+ if(!S.account)return `<div class="page"><div class="empty"><h3>Sign in to Minecraft to use Friends</h3><button class="btn pri" data-act="signin">Sign in</button></div></div>`;
+ const group=chatGroups.find(g=>'group:'+g.id===S.openChat),friend=S.friends.find(f=>f.id===S.openChat),name=group?.name||friend?.ign;
+ const messages=S.chats[S.openChat]||[],draft=chatDrafts.get(S.openChat);
+ return `<div class="page flush"><div class="fr-layout"><div class="fr-list"><div class="hd"><b>Friends & groups</b><div class="row" style="margin-top:12px"><button class="btn" data-act="add-friend">Add friend</button><button class="btn" data-act="group-create">New group</button></div><button class="btn stone" style="margin-top:8px;width:100%" data-act="go-requests">Requests (${S.requests.length})</button>${!netConnected?'<p class="hint">Connecting to MonkeyNetâ€¦</p>':''}</div><div class="fr-scroll">
+ ${chatGroups.map(g=>`<button class="frow ${S.openChat==='group:'+g.id?'on':''}" data-act="open-chat" data-id="group:${esc(g.id)}"><img src="${esc(g.icon)}" alt=""><span><b>${esc(g.name)}</b><span class="st">${g.members.length} members</span></span></button>`).join('')}
+ ${S.friends.map(f=>`<button class="frow ${S.openChat===f.id?'on':''}" data-act="open-chat" data-id="${esc(f.id)}"><img src="https://mc-heads.net/avatar/${encodeURIComponent(f.ign)}/64" alt=""><span><b>${esc(f.ign)}</b><span class="st ${f.online?'on':''}">${esc(f.status)}</span></span></button>`).join('')}
+ ${!S.friends.length&&!chatGroups.length?'<p class="hint" style="padding:20px">Add a friend to start chatting.</p>':''}</div></div>
+ ${name?`<div class="chat"><div class="hd"><img src="${group?esc(group.icon):'https://mc-heads.net/avatar/'+encodeURIComponent(name)+'/64'}" alt=""><b style="flex:1">${esc(name)}</b>${group?`<button class="btn" data-act="group-edit" data-id="${group.id}">Group settings</button>`:''}</div><div class="msgs" id="msgs">
+ ${messages.map(m=>`<div class="msg ${m.me?'me':'them'}">${group&&!m.me?`<b class="chat-sender">${esc(m.name||'Player')}</b>`:''}<span>${esc(m.t||'')}</span>${m.attachmentId?`<button class="chat-shot" data-act="chat-image" data-id="${esc(m.attachmentId)}">${chatImages.has(m.attachmentId)?`<img src="${esc(chatImages.get(m.attachmentId))}" alt="Shared screenshot" loading="lazy">`:`<span data-chat-image="${esc(m.attachmentId)}">Load screenshot</span>`}</button>`:''}<time>${esc(chatTimestamp(m.at))}</time></div>`).join('')||'<p class="hint" style="margin:auto">Start your conversation.</p>'}</div>
+ ${draft?`<div class="chat-attachment"><span>${esc(draft.name)}</span><button class="btn ghost" data-act="chat-detach">Remove</button></div>`:''}
+ <div class="composer"><button class="btn" data-act="chat-attach" title="Attach a screenshot">${svg('image',17)}</button><input id="msgin" maxlength="1000" placeholder="Message ${esc(name)}" autocomplete="off"><button class="btn pri" data-act="send-msg" ${netConnected?'':'disabled'}>Send</button></div></div>`:'<div class="empty"><h3>Choose a conversation</h3><p>Message a friend or create a group.</p></div>'}</div></div>`;
+}
+async function hydrateChatImages(){
+ if(!netConnected||S.tab!=='friends')return;
+ for(const el of document.querySelectorAll('[data-chat-image]')){const id=el.dataset.chatImage;if(chatImagesLoading.has(id))continue;chatImagesLoading.add(id);
+  const r=await MonkeyNet.call('attachment',id,true);if(r.ok&&/^data:image\/(png|jpeg);base64,/.test(r.data.data)){chatImages.set(id,r.data.data);while(chatImages.size>40)chatImages.delete(chatImages.keys().next().value);if(el.isConnected){const img=document.createElement('img');img.src=r.data.data;img.alt='Shared screenshot';img.loading='lazy';el.replaceWith(img);}}else if(el.isConnected)el.textContent='Screenshot unavailable';
+  chatImagesLoading.delete(id);
+ }
+}
+async function showChatImage(id){const r=await MonkeyNet.call('attachment',id,false);if(!r.ok){toast(r.message,'err');return;}if(!/^data:image\/(png|jpeg);base64,/.test(r.data.data))return;openModal(`<div class="modal" style="max-width:1000px"><div class="mh"><h3>${esc(r.data.name)}</h3><button class="btn" data-act="close">Close</button></div><div class="mb"><img style="width:100%;max-height:70vh;object-fit:contain" src="${esc(r.data.data)}" alt="Shared screenshot"></div></div>`);}
+async function chooseChatScreenshot(offset=0){
+ if(!DESKTOP||!netConnected){toast('Connect to MonkeyNet to share screenshots','err');return;}
+ const r=await window.monkey.screenshots.list({offset,limit:24});if(!r.ok){toast(r.message,'err');return;}
+ openModal(`<div class="modal" style="max-width:820px"><div class="mh"><h3>Attach screenshot</h3><button class="btn" data-act="close">Cancel</button></div><div class="mb"><div class="chat-shot-grid">${r.data.items.map(s=>`<button class="btn chat-shot-choice" data-act="chat-pick" data-id="${s.id}" data-name="${esc(s.name)}"><img src="${esc(s.thumbnail||'')}" alt=""><span>${esc(s.profile)}</span></button>`).join('')||'<p>No screenshots yet. Press F2 in Minecraft to take one.</p>'}</div></div><div class="mf">${offset?`<button class="btn" data-act="chat-shot-page" data-offset="${Math.max(0,offset-24)}">Previous</button>`:''}${r.data.hasMore?`<button class="btn" data-act="chat-shot-page" data-offset="${offset+24}">Next</button>`:''}</div></div>`);
+}
+let chatSending=false;
+async function sendMsg(){
+ const inp=$('#msgin'),id=S.openChat,text=inp?.value.trim()||'',draft=chatDrafts.get(id);if(!id||(!text&&!draft)||chatSending)return;
+ if(!netConnected){toast('Reconnect to MonkeyNet before sending','err');return;}
+ chatSending=true;
+ try{const target=chatTarget(id);let attachmentId;
+  if(draft){const r=await window.monkey.screenshots.attach(draft.id,target);if(!r.ok)throw Error(r.message);attachmentId=r.data.attachment.id;}
+  const r=await MonkeyNet.call(target.groupId?'sendGroup':'send',target.groupId||target.to,text,attachmentId);if(!r.ok)throw Error(r.message);
+  if(inp)inp.value='';chatDrafts.delete(id);render();
+ }catch(e){toast(e.message,'err');}finally{chatSending=false;}
+}
+function groupModal(id){
+ const group=chatGroups.find(g=>g.id===id);groupDraft={id:group?.id,name:group?.name||'',icon:group?.icon||'',members:[]};
+ const owner=!group||group.owner===S.account?.uuid?.replace(/-/g,'');
+ openModal(`<div class="modal" style="max-width:560px"><div class="mh"><h3>${group?'Group settings':'New group'}</h3><button class="btn" data-act="close">Cancel</button></div><div class="mb">${owner?`<div class="field"><label for="group-name">Group name</label><input id="group-name" maxlength="48" value="${esc(groupDraft.name)}" placeholder="Give your group a name"></div><div class="row"><img id="group-icon" src="${esc(groupDraft.icon)}" style="width:64px;height:64px;image-rendering:pixelated;${groupDraft.icon?'':'visibility:hidden'}" alt="Group icon"><button class="btn" data-act="group-icon">Choose icon</button></div><p class="hint">A name and icon are required.</p>${!group?`<p style="margin:16px 0 8px">Choose friends (up to 15)</p>${S.friends.map(f=>`<label class="check"><input type="checkbox" class="group-member" value="${f.id}"><span>${esc(f.ign)}</span></label>`).join('')||'<p class="hint">Add a friend first.</p>'}`:''}`:`<p>${group.members.length} members. Only the owner can edit the group.</p>`}</div><div class="mf">${group?'<button class="btn dang" data-act="group-leave">Leave group</button>':''}${owner?`<button class="btn pri" id="group-save" data-act="group-save" ${group?'':'disabled'}>${group?'Save':'Create group'}</button>`:''}</div></div>`);
+ $('#group-name')?.addEventListener('input',validateGroupDraft);document.querySelectorAll('.group-member').forEach(e=>e.addEventListener('change',validateGroupDraft));
+}
+function validateGroupDraft(){if(!groupDraft)return;groupDraft.name=$('#group-name')?.value.trim()||'';groupDraft.members=[...document.querySelectorAll('.group-member:checked')].map(e=>e.value);const b=$('#group-save');if(b)b.disabled=!groupDraft.name||!groupDraft.icon||(!groupDraft.id&&(!groupDraft.members.length||groupDraft.members.length>15));}
+async function chooseGroupIcon(){const file=DESKTOP?await window.monkey.pickPng():await pickImageInBrowser();if(!file)return;const img=new Image();img.src=file.data;await img.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const c=canvas.getContext('2d'),size=Math.min(img.width,img.height);c.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,128,128);groupDraft.icon=canvas.toDataURL('image/png');const preview=$('#group-icon');preview.src=groupDraft.icon;preview.style.visibility='visible';validateGroupDraft();}
+async function saveGroup(){validateGroupDraft();if($('#group-save')?.disabled)return;const r=groupDraft.id?await MonkeyNet.call('updateGroup',groupDraft.id,{name:groupDraft.name,icon:groupDraft.icon}):await MonkeyNet.call('createGroup',groupDraft);if(!r.ok){toast(r.message,'err');return;}closeModal();await refreshNet();await openChat('group:'+r.data.group.id);}
 
 
 /* A miniature of the actual Play stage, so you can see a background before
@@ -2413,7 +2417,7 @@ function launcherSettings(){
       <div class="preset-save row" style="gap:8px;margin-top:12px"><input id="theme-preset-name" type="text" maxlength="40" placeholder="Name your theme" aria-label="Theme preset name"><button class="btn" data-act="theme-save">Save theme</button></div>
       <div class="saved-presets">        ${(S.themePresets||[]).map(p=>`<div class="saved-preset"><button class="btn" data-act="theme-load" data-id="${esc(p.id)}"><i style="background:${esc(p.theme.accent)}"></i>${esc(p.name)}</button><button class="btn ghost" data-act="theme-delete" data-id="${esc(p.id)}" aria-label="Delete ${esc(p.name)}">${svg('trash',13)}</button></div>`).join('')}
       </div>
-      <div class="h5">Background · all tabs</div>
+      <div class="h5">Background Â· all tabs</div>
       <div class="fxgrid">
         ${BG_EFFECTS.map(([k,label])=>`
           <button class="fxcard stone ${fx.effect===k?'on':''}" data-act="fx-effect" data-k="${k}">
@@ -2471,13 +2475,13 @@ async function pollInstances(){
   if(box && list[0]) box.textContent=`open for ${since(list[0].startedAt)}`;
 }
 
-/* Crash report — the Java output that actually explains a failed launch. */
+/* Crash report â€” the Java output that actually explains a failed launch. */
 function crashModal(c){
   const log = (c.log||[]).join('\n');
   const hint = /UnsupportedClassVersion|class file version/.test(log)
-      ? 'That looks like a Java version mismatch — this build needs a newer runtime than the one used.'
+      ? 'That looks like a Java version mismatch â€” this build needs a newer runtime than the one used.'
     : /LWJGL|no lwjgl|UnsatisfiedLinkError|java\.library\.path/.test(log)
-      ? 'That looks like a native library problem — the LWJGL natives did not unpack where the game expected.'
+      ? 'That looks like a native library problem â€” the LWJGL natives did not unpack where the game expected.'
     : /OutOfMemoryError/.test(log)
       ? 'The game ran out of memory. Raise the memory slider in profile settings.'
     : /Mixin|fabric/i.test(log)
@@ -2518,7 +2522,7 @@ function crashDialog(ev){
       <div class="note warn" style="margin-bottom:14px">${svg('info',16)}<div>
         ${ev.message ? esc(ev.message) : `The game stopped with exit code
         <b style="color:var(--tx)">${ev.code}</b>. The lines below are the most
-        likely cause — the full log has everything.`}</div></div>
+        likely cause â€” the full log has everything.`}</div></div>
       ${shown.length?`<div class="logbox">${shown.map(l=>`<div>${esc(l)}</div>`).join('')}</div>`:''}
     </div>
     <div class="mf">
@@ -2579,7 +2583,7 @@ function instanceRows(){
     <div class="pinfo"><h4>${esc((sel()||{}).name||'Starting')}</h4>
       <div class="meta"><span class="tag">Starting</span>
         <span>${esc(S.launching.step||'Preparing')}</span>
-        <span>·</span><span class="num">${S.launching.pct||0}%</span></div></div>
+        <span>Â·</span><span class="num">${S.launching.pct||0}%</span></div></div>
   </div>`;
   if(!list.length) return `<div class="empty" style="margin:16px auto">
     <div class="ill">${svg('monitor',60)}</div><h3>Nothing running</h3>
@@ -2589,9 +2593,10 @@ function instanceRows(){
     <div class="pinfo"><h4>${esc(i.profile||i.name||'Minecraft')}</h4>
       <div class="meta"><span class="tag leaf">Running</span>
         <span>open for ${fmtSince(i.startedAt)}</span>
-        <span>·</span><span class="num">PID ${i.pid}</span></div></div>
-    <button class="btn" data-act="view-log" data-id="${esc(i.profileId)}">${svg('folder',14)}Log</button>
-    <button class="btn dang" data-act="kill" data-id="${esc(i.profileId)}">${svg('power',14)}Close</button>
+        <span>Â·</span><span class="num">PID ${i.pid}</span></div></div>
+    <span class="tag">${esc(i.sessionName||'Primary')}</span>
+    <button class="btn" data-act="view-log" data-id="${esc(i.instanceId||i.profileId)}">${svg('folder',14)}Log</button>
+    <button class="btn dang" data-act="kill" data-id="${esc(i.instanceId||i.profileId)}">${svg('power',14)}Close</button>
   </div>`).join('');
 }
 function instancesModal(){
@@ -2631,6 +2636,7 @@ function render(){
   }
   lastHtml=html;
   if(S.tab==='skins') hydrateSkins();
+  if(S.tab==='friends') hydrateChatImages();
   if(S.tab==='play') spinAttach();
   bgAttach();
   const m=$('#msgs'); if(m) m.scrollTop=m.scrollHeight;
@@ -2699,7 +2705,7 @@ document.addEventListener('click', async e => {
     case 'account-menu': accountModal(); break;
     case 'switch-account': {
       if(!DESKTOP) break;
-      toast('Switching account…','info');
+      toast('Switching accountâ€¦','info');
       const r=await window.monkey.auth.switch(id);
       if(!r.ok){ toast(r.message,'err'); accountModal(); break; }
       S.account=r.account; S.mySkin=null; save();
@@ -2824,7 +2830,7 @@ document.addEventListener('click', async e => {
       if(!S.account){ toast('Applied locally. Sign in to push it to your account','info'); break; }
       if(!DESKTOP){ toast('Applied locally. Uploading needs the desktop build','info'); break; }
       if(!skin.data){ toast('Only uploaded or drawn skins can be uploaded','err'); break; }
-      toast('Uploading to Mojang…','info');
+      toast('Uploading to Mojangâ€¦','info');
       const up=await window.monkey.mc.uploadSkin(skin.data, skin.slim?'slim':'classic');
       toast(up.ok?'Skin applied to your account':up.message, up.ok?'ok':'err'); break; }
     case 'apply-cape': {
@@ -2873,7 +2879,7 @@ document.addEventListener('click', async e => {
     case 'del-cape': S.capes=S.capes.filter(c=>c.id!==id);if(S.activeCape===id)S.activeCape=null;save();spinCape();render();toast('Cape removed');break;
 
     /* friends */
-    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(id||S.crash?.profileId); break;
+    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(id||(S.crash?.instanceId||S.crash?.profileId)); break;
     case 'instances': instancesModal(); break;
     case 'copy-log': {
       const log=(S.crash&&S.crash.log||[]).join('\n');
@@ -2881,7 +2887,7 @@ document.addEventListener('click', async e => {
       catch(e){ toast('Could not copy','err'); }
       break; }
     case 'save-log':
-      if(DESKTOP){ const f=await window.monkey.game.saveLog(S.crash?.profileId); toast('Saved to '+f); }
+      if(DESKTOP){ const f=await window.monkey.game.saveLog((S.crash?.instanceId||S.crash?.profileId)); toast('Saved to '+f); }
       break;
     case 'go-requests':
       if(!S.account){ toast('Sign in to see friend requests','err'); signInModal(); break; }
@@ -2890,7 +2896,7 @@ document.addEventListener('click', async e => {
     case 'do-add-friend': {
       const name=($('#afi').value||'').trim(), box=$('#aferr');
       if(!name){ box.innerHTML=`<div class="note warn">${svg('info',16)}<div>Enter a username first.</div></div>`; break; }
-      box.innerHTML=`<p style="color:var(--mute);font-size:12.5px">Checking ${esc(name)}…</p>`;
+      box.innerHTML=`<p style="color:var(--mute);font-size:12.5px">Checking ${esc(name)}â€¦</p>`;
       const r=await lookupPlayer(name);
       if(r.error==='notfound'){ box.innerHTML=`<div class="note warn">${svg('info',16)}<div>No Minecraft account named <b style="color:var(--tx)">${esc(name)}</b>. Check the spelling.</div></div>`; break; }
       if(r.error){ box.innerHTML=`<div class="note warn">${svg('info',16)}<div>Mojang is unreachable, so the username can't be verified right now.</div></div>`; break; }
@@ -2899,7 +2905,7 @@ document.addEventListener('click', async e => {
       if(netConnected && !sent.ok){ box.innerHTML=`<div class="note warn">${svg('info',16)}<div>${esc(sent.message)}</div></div>`; break; }
       closeModal();
       if(netConnected){ toast(`Request sent to ${r.name}`); refreshNet(); }
-      else toast(`${r.name} verified — start MonkeyNet to send the request`,'info');
+      else toast(`${r.name} verified â€” start MonkeyNet to send the request`,'info');
       break; }
     case 'accept-req': {
       const r=S.requests.find(x=>x.id===id);
@@ -2916,13 +2922,17 @@ document.addEventListener('click', async e => {
       if(netConnected){ await MonkeyNet.call('declineRequest',id); closeModal(); await refreshNet(); toast(`Declined ${r.ign}`,'info'); break; }
       S.requests=S.requests.filter(x=>x.id!==id);
       save(); requestsModal(); render(); toast(`Declined ${r.ign}`,'info'); break; }
-    case 'open-chat': {
-      S.openChat=id;
-      document.querySelectorAll('[data-act="open-chat"]').forEach(b=>
-        b.classList.toggle('on', b.dataset.id===id));
-      render();
-      if(netConnected){ const h=await MonkeyNet.call('history',id); if(h.ok){ S.chats[id]=h.data.messages; render(); } }
-      break; }
+    case 'open-chat': await openChat(id); break;
+    case 'group-create': groupModal(); break;
+    case 'group-edit': groupModal(id); break;
+    case 'group-icon': await chooseGroupIcon(); break;
+    case 'group-save': await saveGroup(); break;
+    case 'group-leave': {const result=await MonkeyNet.call('leaveGroup',groupDraft.id);if(result.ok){closeModal();S.openChat=null;await refreshNet();}else toast(result.message,'err');break;}
+    case 'chat-image': await showChatImage(id); break;
+    case 'chat-attach': await chooseChatScreenshot(); break;
+    case 'chat-shot-page': await chooseChatScreenshot(Number(t.dataset.offset)); break;
+    case 'chat-pick': chatDrafts.set(S.openChat,{id,name:t.dataset.name});closeModal();render();break;
+    case 'chat-detach': chatDrafts.delete(S.openChat);render();break;
     case 'send-msg': sendMsg(); break;
 
     case 'settings': launcherSettings(); break;
@@ -2979,7 +2989,7 @@ document.addEventListener('click', async e => {
       break; }
     case 'upd-check': {
       if(!DESKTOP){ S.updateMsg='Updates only work in the installed desktop build.'; launcherSettings(); break; }
-      S.updateMsg='Checking for updates…'; launcherSettings();
+      S.updateMsg='Checking for updatesâ€¦'; launcherSettings();
       const r=await window.monkey.update.check();
       if(!r.ok){ S.updateMsg=r.message; launcherSettings(); }
       break; }
@@ -2991,7 +3001,7 @@ document.addEventListener('click', async e => {
       if(r.ok){ await navigator.clipboard.writeText(r.text); toast('Log copied to clipboard'); }
       else toast(r.message,'err');
       break; }
-    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(id||S.crash?.profileId); break;
+    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(id||(S.crash?.instanceId||S.crash?.profileId)); break;
     case 'instances': instancesModal(); break;
     case 'kill-instance':
       if(DESKTOP) await window.monkey.game.kill(t.dataset.k);
@@ -3024,6 +3034,7 @@ document.addEventListener('change', async e => {
       save(); break;
     case 's-ram': p.settings.ram=parseInt(t.value); settingsModal(setId); break;
     case 's-cjava': p.settings.customJava=t.checked; settingsModal(setId); break;
+    case 's-performance': p.settings.performance=t.value; break;
     case 's-cargs': p.settings.customArgs=t.checked; settingsModal(setId); break;
     case 's-full': p.settings.fullscreen=t.checked; break;
     case 's-close': p.settings.closeOnLaunch=t.checked; break;
@@ -3076,7 +3087,7 @@ document.addEventListener('input', e => {
 
 
 /* ============================================================
-   Editor — paint on the rotating model, on the shared renderer
+   Editor â€” paint on the rotating model, on the shared renderer
    ============================================================ */
 const ED = { kind:'skin', w:64, h:64, tool:'pen', color:'#8A6234', slim:false, layer:'base',
              brush:1, mirror:false, ctx:null, view:null, undo:[], redo:[], id:null, name:'',
@@ -3235,7 +3246,7 @@ async function edDefaultSkin(){
   edPaint();
 }
 function edDefaultCape(){
-  /* A plain cape template — Mojang's own cape art is theirs, so this is a
+  /* A plain cape template â€” Mojang's own cape art is theirs, so this is a
      neutral starting point you can paint over. */
   const c=ED.ctx;
   c.fillStyle='#7A2E24'; c.fillRect(1,1,10,16);
@@ -3282,7 +3293,7 @@ function edRender(){
 
       <div class="ed-centre">
         <canvas id="edcv" width="460" height="500"></canvas>
-        <div class="ed-hint">Left mouse paints · right mouse or Shift turns · scroll zooms · double-click resets</div>
+        <div class="ed-hint">Left mouse paints Â· right mouse or Shift turns Â· scroll zooms Â· double-click resets</div>
       </div>
 
       <div class="ed-right">
@@ -3360,7 +3371,7 @@ function edSave(){
 }
 
 /* The stage canvases are sized in pixels, so they need refitting whenever the
-   window changes — otherwise maximising leaves them at the old size. */
+   window changes â€” otherwise maximising leaves them at the old size. */
 let resizeTimer=null;
 window.addEventListener('resize', ()=>{
   clearTimeout(resizeTimer);
@@ -3385,13 +3396,13 @@ function pageScreenshots(){
  return `<div class="page screenshots-page"><div class="shots-heading"><div><h1>Screenshots</h1><p class="muted">Your in-game captures, across all profiles.</p></div><button class="btn" data-act="shots-refresh" ${SHOTS.loading?'disabled':''}>${svg('refresh',16)}Refresh</button></div>
  <div class="shots-controls"><select data-act="shots-profile" aria-label="Filter screenshots by profile"><option value="">All profiles</option>${S.profiles.map(p=>`<option value="${esc(p.id)}" ${p.id===SHOTS.profileId?'selected':''}>${esc(p.name)}</option>`).join('')}</select><span>${SHOTS.total} screenshot${SHOTS.total===1?'':'s'}</span></div>
  ${SHOTS.error?`<div class="note warn">${esc(SHOTS.error)}</div>`:''}
- ${SHOTS.loading?'<p class="muted" role="status">Loading screenshots…</p>':''}
- ${!SHOTS.loading&&!SHOTS.items.length?'<div class="empty"><h3>No screenshots yet</h3><p>Press F2 in Minecraft to save a screenshot. Monkey Client captures at 3840 × 2160 by default.</p></div>':''}
- <div class="shots-grid">${SHOTS.items.map(photo=>`<article class="shot-card"><button class="shot-image" data-act="shot-open" data-id="${photo.id}" aria-label="Open ${esc(photo.name)}">${photo.thumbnail?`<img src="${photo.thumbnail}" alt="${esc(photo.name)}" loading="lazy" decoding="async">`:'<span>Preview unavailable</span>'}</button><div class="shot-meta"><b title="${esc(photo.name)}">${esc(photo.name)}</b><small>${esc(photo.profile)} · ${new Date(photo.created).toLocaleDateString()}</small><div class="row"><button class="btn" data-act="shot-open" data-id="${photo.id}">Open</button><button class="btn" data-act="shot-open" data-id="${photo.id}" data-reveal="true">Show in folder</button></div></div></article>`).join('')}</div>
- <div class="shots-pagination"><button class="btn" data-act="shots-page" data-offset="${Math.max(0,SHOTS.offset-36)}" ${SHOTS.offset===0||SHOTS.loading?'disabled':''}>Previous</button><span>${SHOTS.total?`${SHOTS.offset+1}–${Math.min(SHOTS.offset+36,SHOTS.total)} of ${SHOTS.total}`:'0 screenshots'}</span><button class="btn" data-act="shots-page" data-offset="${SHOTS.offset+36}" ${!SHOTS.hasMore||SHOTS.loading?'disabled':''}>Next</button></div></div>`;
+ ${SHOTS.loading?'<p class="muted" role="status">Loading screenshotsâ€¦</p>':''}
+ ${!SHOTS.loading&&!SHOTS.items.length?'<div class="empty"><h3>No screenshots yet</h3><p>Press F2 in Minecraft to save a screenshot. Monkey Client captures at 3840 Ã— 2160 by default.</p></div>':''}
+ <div class="shots-grid">${SHOTS.items.map(photo=>`<article class="shot-card"><button class="shot-image" data-act="shot-open" data-id="${photo.id}" aria-label="Open ${esc(photo.name)}">${photo.thumbnail?`<img src="${photo.thumbnail}" alt="${esc(photo.name)}" loading="lazy" decoding="async">`:'<span>Preview unavailable</span>'}</button><div class="shot-meta"><b title="${esc(photo.name)}">${esc(photo.name)}</b><small>${esc(photo.profile)} Â· ${new Date(photo.created).toLocaleDateString()}</small><div class="row"><button class="btn" data-act="shot-open" data-id="${photo.id}">Open</button><button class="btn" data-act="shot-open" data-id="${photo.id}" data-reveal="true">Show in folder</button></div></div></article>`).join('')}</div>
+ <div class="shots-pagination"><button class="btn" data-act="shots-page" data-offset="${Math.max(0,SHOTS.offset-36)}" ${SHOTS.offset===0||SHOTS.loading?'disabled':''}>Previous</button><span>${SHOTS.total?`${SHOTS.offset+1}â€“${Math.min(SHOTS.offset+36,SHOTS.total)} of ${SHOTS.total}`:'0 screenshots'}</span><button class="btn" data-act="shots-page" data-offset="${SHOTS.offset+36}" ${!SHOTS.hasMore||SHOTS.loading?'disabled':''}>Next</button></div></div>`;
 }
 function additionalInstanceModal(profile,instances){
- openModal(`<div class="modal" style="max-width:560px"><div class="mh"><h3>Launch another Minecraft instance?</h3></div><div class="mb"><p>${instances.length} instance${instances.length===1?' is':'s are'} already open. Start <b>${esc(profile.name)}</b> alongside ${instances.length===1?'it':'them'}?</p><p class="muted">Each game uses its own memory allocation. The current game will stay open.</p></div><div class="mf"><button class="btn" data-act="close">Cancel</button><button class="btn pri" data-act="launch-additional">Yes, launch ${esc(profile.name)}</button></div></div>`);
+ openModal(`<div class="modal" style="max-width:560px"><div class="mh"><h3>Launch another Minecraft instance?</h3></div><div class="mb"><p>${instances.length} instance${instances.length===1?' is':'s are'} already open. Start <b>${esc(profile.name)}</b> alongside ${instances.length===1?'it':'them'}?</p><p class="muted">Each game uses its own memory allocation. Extra copies of the same profile keep separate worlds and screenshots, and copy your mods and settings. Your primary worlds stay in the original copy.</p></div><div class="mf"><button class="btn" data-act="close">Cancel</button><button class="btn pri" data-act="launch-additional">Yes, launch ${esc(profile.name)}</button></div></div>`);
 }
 function deleteProfileModal(id){
  const p=S.profiles.find(p=>p.id===id);if(!p)return;
@@ -3409,7 +3420,7 @@ function updateModal(update){
  const ready=update.state==='ready'||S.updateReady;
  const version=update.version||S.pendingUpdate?.version||'';
  if(modalKey!=='update'&&document.querySelector('#modal .modal'))return;
- openModal(`<div class="modal update-modal"><div class="mh">${svg('dl',22)}<h3>${ready?'Your update is ready':'A new update is available'}</h3><button class="btn ghost" data-act="close" aria-label="Dismiss">${svg('x',16)}</button></div><div class="mb"><div class="update-version">Monkey Client ${esc(version)}</div><p>${ready?'Close the launcher to install the update automatically. You do not need to download setup again.':'The update is downloading automatically. Keep the launcher open until the download finishes.'}</p>${ready?'<p class="muted">Any open Minecraft games will stay running.</p>':`<div class="update-progress"><i style="width:${Math.max(3,Math.min(100,update.percent||3))}%"></i></div><p class="muted">${update.percent?Math.round(update.percent)+'% downloaded':'Preparing download…'}</p>`}</div><div class="mf"><button class="btn" data-act="close">${ready?'Later':'Keep using launcher'}</button>${ready?'<button class="btn pri" data-act="upd-install">Close and update</button>':''}</div></div>`,{key:'update'});
+ openModal(`<div class="modal update-modal"><div class="mh">${svg('dl',22)}<h3>${ready?'Your update is ready':'A new update is available'}</h3><button class="btn ghost" data-act="close" aria-label="Dismiss">${svg('x',16)}</button></div><div class="mb"><div class="update-version">Monkey Client ${esc(version)}</div><p>${ready?'Close the launcher to install the update automatically. You do not need to download setup again.':'The update is downloading automatically. Keep the launcher open until the download finishes.'}</p>${ready?'<p class="muted">Any open Minecraft games will stay running.</p>':`<div class="update-progress"><i style="width:${Math.max(3,Math.min(100,update.percent||3))}%"></i></div><p class="muted">${update.percent?Math.round(update.percent)+'% downloaded':'Preparing downloadâ€¦'}</p>`}</div><div class="mf"><button class="btn" data-act="close">${ready?'Later':'Keep using launcher'}</button>${ready?'<button class="btn pri" data-act="upd-install">Close and update</button>':''}</div></div>`,{key:'update'});
 }
 async function finishBoot(){
  await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]);
@@ -3423,7 +3434,7 @@ window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)lo
 (async function(){
   try{
   await load();
-  if(DESKTOP)window.monkey.profiles.onProgress(progress=>{const text=document.getElementById('version-progress');if(text)text.textContent=progress.detail||'Updating mods…';});
+  if(DESKTOP)window.monkey.profiles.onProgress(progress=>{const text=document.getElementById('version-progress');if(text)text.textContent=progress.detail||'Updating modsâ€¦';});
   if(!S.theme) S.theme={...PRESETS.jungle};
   applyTheme(); applyFont();
   document.documentElement.classList.toggle('no-anim', S.uiAnim===false);
@@ -3444,7 +3455,7 @@ window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)lo
     window.monkey.net.onEvent(handleNetEvent);
     const handleUpdate=u=>{
       if(!u)return;
-      const msg={available:`Update ${u.version} found — downloading…`,downloading:`Downloading update — ${u.percent}%`,ready:`Update ${u.version} is ready. Close the launcher to install it.`,current:'Monkey Client is up to date.',error:`Update check failed: ${u.message}`}[u.state];
+      const msg={available:`Update ${u.version} found â€” downloadingâ€¦`,downloading:`Downloading update â€” ${u.percent}%`,ready:`Update ${u.version} is ready. Close the launcher to install it.`,current:'Monkey Client is up to date.',error:`Update check failed: ${u.message}`}[u.state];
       S.updateMsg=msg;
       if(u.state==='ready')S.updateReady=true;
       if(['available','ready','downloading'].includes(u.state)){
@@ -3461,22 +3472,22 @@ window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)lo
     await pollInstances();
     window.monkey.game.onProgress(p=>{
       const first = !S.launching;
-      S.launching={pct:p.pct, step:p.detail,profileId:p.profileId};
+      S.launching={pct:p.pct, step:p.detail,profileId:p.profileId,instanceId:p.instanceId};
       if(first){ render(); return; }
       const bar=document.querySelector('.progress .bar i'), txt=document.querySelector('.progress p');
       if(bar) bar.style.width=p.pct+'%';
       if(txt) txt.textContent=p.detail;
       else render();
     });
-    window.monkey.game.onCrash(c=>{ S.crash=c;if(S.launching?.profileId===c.profileId)S.launching=null;pollInstances();render();crashModal(c); });
+    window.monkey.game.onCrash(c=>{ S.crash=c;if(S.launching?.instanceId===c.instanceId)S.launching=null;pollInstances();render();crashModal(c); });
     setInterval(pollInstances, 5000);
     window.monkey.game.onEvent(ev=>{
-      if(ev.type==='running'){if(S.launching?.profileId===ev.profileId)S.launching=null;pollInstances();render();toast((ev.profile||'Minecraft')+' is running');}
+      if(ev.type==='running'){if(S.launching?.instanceId===ev.instanceId)S.launching=null;pollInstances();render();toast((ev.profile||'Minecraft')+' is running');}
       if(ev.type==='exit'){
-        if(S.launching?.profileId===ev.profileId)S.launching=null;pollInstances();render();
+        if(S.launching?.instanceId===ev.instanceId)S.launching=null;pollInstances();render();
         if(ev.code===0) toast('Minecraft closed');
       }
-      if(ev.type==='error'){if(S.launching?.profileId===ev.profileId)S.launching=null;pollInstances();render();toast(ev.message,'err');}
+      if(ev.type==='error'){if(S.launching?.instanceId===ev.instanceId)S.launching=null;pollInstances();render();toast(ev.message,'err');}
     });
     window.monkey.auth.onAccounts(list=>{ S.accounts=list; renderChrome(); });
     const acc=await window.monkey.auth.account();

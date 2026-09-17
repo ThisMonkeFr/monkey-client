@@ -45,4 +45,4 @@ async function ensure(profile,progress=()=>{}){
  for(const name of await fsp.readdir(dir))if(name!==MANAGED&&/^monkeyclient.*\.jar$/i.test(name))await fsp.rename(path.join(dir,name),path.join(dir,name+'.disabled'));
  return {installed:release.version};
 }
-module.exports={ensure,modsDir,matching,compareVersions,bundledRelease};
+module.exports={ensureFabricApi,ensure,modsDir,matching,compareVersions,bundledRelease};

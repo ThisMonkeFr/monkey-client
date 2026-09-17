@@ -10,15 +10,20 @@ function createScreenshotService({store,io,nativeImage,shell}){
   for(const profile of data?.profiles||[]){
    if(profileId&&profile.id!==profileId)continue;
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(profile.id))continue;
-   const dir=path.resolve(profile.settings?.gameDir||io.instance(profile.id),'screenshots');
+   const roots=[{dir:path.resolve(profile.settings?.gameDir||io.instance(profile.id)),name:profile.name}];
+   const sessions=path.join(io.instance(profile.id),'sessions');
+   for(const entry of await fs.readdir(sessions,{withFileTypes:true}).catch(()=>[]))if(entry.isDirectory()&&!entry.isSymbolicLink()&&/^Session \d+$/.test(entry.name)){
+    const dir=path.join(sessions,entry.name);try{const owner=JSON.parse(await fs.readFile(path.join(dir,'monkey-session.json'),'utf8'));if(owner.profileId===profile.id)roots.push({dir,name:profile.name+' · '+entry.name});}catch{}
+   }
+   for(const source of roots){const dir=path.join(source.dir,'screenshots');
    if(seen.has(dir))continue;seen.add(dir);
    const entries=await fs.readdir(dir,{withFileTypes:true}).catch(e=>{if(e.code==='ENOENT')return [];throw e;});
    for(const entry of entries){
     if(!entry.isFile()||!entry.name.toLowerCase().endsWith('.png'))continue;
     const file=path.join(dir,entry.name),stat=await fs.stat(file).catch(()=>null);if(!stat)continue;
-    const id=idFor(file);files.set(id,file);rows.push({id,name:entry.name,profileId:profile.id,profile:profile.name,created:stat.mtimeMs,bytes:stat.size});
+    const id=idFor(file);files.set(id,file);rows.push({id,name:entry.name,profileId:profile.id,profile:source.name,created:stat.mtimeMs,bytes:stat.size});
    }
-  }
+  }}
   rows.sort((a,b)=>b.created-a.created||a.name.localeCompare(b.name));
   const start=Math.max(0,Number(offset)||0),count=Math.max(1,Math.min(60,Number(limit)||48)),page=rows.slice(start,start+count);
   for(const row of page){
@@ -36,6 +41,15 @@ function createScreenshotService({store,io,nativeImage,shell}){
   if(reveal)shell.showItemInFolder(file);else{const error=await shell.openPath(file);if(error)throw Error(error);}
   return true;
  }
- return {list,open};
+ async function attachment(id){
+  const file=files.get(id);if(!file)throw Error('Refresh Screenshots before attaching this image.');
+  const stat=await fs.lstat(file);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>48*1024*1024)throw Error('Screenshot is unavailable or too large.');
+  let image=nativeImage.createFromPath(file);if(image.isEmpty())throw Error('Could not read screenshot');
+  let size=image.getSize();if(size.width>3840||size.height>2160){image=image.resize({width:Math.min(3840,Math.round(size.width*Math.min(3840/size.width,2160/size.height)))});size=image.getSize();}
+  let bytes=image.toJPEG(88);if(bytes.length>2*1024*1024){image=image.resize({width:Math.min(1920,size.width)});bytes=image.toJPEG(78);size=image.getSize();}
+  if(bytes.length>2*1024*1024)throw Error('Screenshot is too large to share.');
+  return {name:path.basename(file),width:size.width,height:size.height,data:'data:image/jpeg;base64,'+bytes.toString('base64'),thumbnail:'data:image/jpeg;base64,'+image.resize({width:320}).toJPEG(72).toString('base64')};
+ }
+ return {list,open,attachment};
 }
 module.exports={createScreenshotService};

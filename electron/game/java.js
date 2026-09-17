@@ -12,7 +12,7 @@ const ADOPTIUM = 'https://api.adoptium.net/v3/binary/latest';
 
 function probe(bin) {
   return new Promise(resolve => {
-    const p = spawn(bin, ['-version'], { windowsHide: true });
+    const p = spawn(bin, ['-XshowSettings:properties','-version'], { windowsHide: true });
     let out = '';
     const timer = setTimeout(() => { p.kill(); resolve(null); }, 5000);
     p.once('close', () => clearTimeout(timer));
@@ -20,18 +20,22 @@ function probe(bin) {
     p.on('error', () => resolve(null));
     p.stderr.on('data', d => out += d);          // java -version writes to stderr
     p.stdout.on('data', d => out += d);
-    p.on('close', () => {
+    p.on('close', code => {
+      if(code!=null&&code!==0)return resolve(null);
       const m = out.match(/version "(\d+)(?:\.(\d+))?/);
       if (!m) return resolve(null);
       // 1.8.0_x reports as 1.8; anything modern reports its major directly.
       const major = m[1] === '1' ? parseInt(m[2]) : parseInt(m[1]);
-      resolve({ bin, major });
+      const arch=out.match(/os\.arch\s*=\s*(\S+)/)?.[1];
+      if(arch&&((process.arch==='x64'&&!['amd64','x86_64'].includes(arch))||(process.arch==='arm64'&&!['aarch64','arm64'].includes(arch))))return resolve(null);
+      const home=out.match(/java\.home\s*=\s*([^\r\n]+)/)?.[1]?.trim();
+      resolve({ bin:home?path.join(home,'bin',EXE):bin, major });
     });
   });
 }
 
 async function candidates() {
-  const list = ['java'];
+  const list = [];
   if (process.env.JAVA_HOME) list.push(path.join(process.env.JAVA_HOME, 'bin', EXE));
   try {
     const dir = shared('java');
@@ -40,7 +44,7 @@ async function candidates() {
       list.push(path.join(dir, d, 'Contents', 'Home', 'bin', EXE)); // macOS layout
     }
   } catch {}
-  return list;
+  list.push('java');return list;
 }
 
 async function find(majorNeeded) {
@@ -79,7 +83,7 @@ async function ensure(version, override, onProgress = () => {}) {
     const consoleBin = override.replace(/javaw\.exe$/i, 'java.exe');
     const checked = await probe(consoleBin);
     if (!checked || checked.major !== major) throw Error(`Minecraft ${version.id} needs Java ${major}. Select a Java ${major} executable or turn off the custom Java override.`);
-    return consoleBin;
+    return checked.bin;
   }
   if(pending.has(major))return pending.get(major);
   const task=(async()=>{

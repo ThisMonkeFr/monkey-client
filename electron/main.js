@@ -262,7 +262,7 @@ const recentLogs = new Map();
 const recentLogPaths = new Map();
 const LOG_MAX = 400;
 let lastProfileId = null;
-const instanceList = () => [...running.values()].map(r => ({profile:r.profile,profileId:r.profileId,pid:r.pid||null,startedAt:r.startedAt,logPath:r.logPath||null,state:r.state,gameDir:r.gameDir}));
+const instanceList = () => [...running.values()].map(r => ({instanceId:r.instanceId,sessionName:r.sessionName,profile:r.profile,profileId:r.profileId,pid:r.pid||null,startedAt:r.startedAt,logPath:r.logPath||null,state:r.state,gameDir:r.gameDir}));
 const INST_FILE = () => path.join(app.getPath('userData'), 'instances.json');
 let instanceSave=Promise.resolve(),instancesReady=Promise.resolve();
 function saveInstances(){
@@ -275,7 +275,8 @@ async function restoreInstances(){
     for(const prev of rows){if(!prev.profileId){const matches=(data.profiles||[]).filter(p=>p.name===prev.profile);if(matches.length===1)prev.profileId=matches[0].id;}const p=(data.profiles||[]).find(p=>p.id===prev.profileId);if(p&&!prev.gameDir)prev.gameDir=path.resolve(p.settings?.gameDir||require('./game/io').instance(p.id));}
     for(const prev of rows){if(!prev.profileId||!Number.isInteger(prev.pid))continue;
       try{process.kill(prev.pid,0);}catch{continue;}
-      running.set(prev.profileId,{...prev,state:'running',external:true,kill:()=>{try{process.kill(prev.pid);}catch{}}});
+      const instanceId=prev.instanceId||require('node:crypto').randomUUID();
+      running.set(instanceId,{...prev,instanceId,state:'running',external:true,kill:()=>{try{process.kill(prev.pid);}catch{}}});
     }
     send('game:instances',instanceList());
   }catch{}
@@ -284,19 +285,21 @@ function refreshExternalInstances(){for(const [id,record] of running)if(record.e
 function rememberLog(id,lines){recentLogs.delete(id);recentLogs.set(id,lines);recentLogPaths.delete(id);while(recentLogs.size>8){const key=recentLogs.keys().next().value;recentLogs.delete(key);recentLogPaths.delete(key);}}
 ipcMain.handle('game:launch',async(_e,payload)=>{
   await instancesReady;
-  const {profile,confirmAdditional=false}=payload||{};
+  let {profile,confirmAdditional=false}=payload||{};
   if(!profile||!/^[a-zA-Z0-9_-]{1,100}$/.test(profile.id))return {ok:false,message:'Choose a saved profile.'};
   refreshExternalInstances();
   if(profileService.isBusy(profile.id))return {ok:false,message:'This profile is changing versions. Wait for it to finish.'};
-  if(running.has(profile.id))return {ok:false,message:'This profile is already open. Choose another profile to launch a second instance.'};
+  if([...running.values()].some(r=>r.profileId===profile.id&&r.state==='preparing'))return {ok:false,message:'Wait for this profile to finish starting before opening another copy.'};
   if(running.size&&!confirmAdditional)return {ok:false,confirmAdditional:true,instances:instanceList()};
   if(!account())return {ok:false,message:'Sign in before launching.'};
-  const dir=path.resolve(profile.settings?.gameDir||require('./game/io').instance(profile.id));
-  if([...running.values()].some(r=>r.gameDir===dir))return {ok:false,message:'Another instance is using this game folder. Choose a separate folder before launching.'};
-  const record={profile:profile.name,profileId:profile.id,gameDir:dir,startedAt:Date.now(),state:'preparing',logs:[]};
-  running.set(profile.id,record);lastProfileId=profile.id;rememberLog(profile.id,record.logs);
-  const progress=p=>send('game:progress',{...p,profileId:profile.id});
+  let dir=path.resolve(profile.settings?.gameDir||require('./game/io').instance(profile.id));
+  const duplicate=[...running.values()].some(r=>r.gameDir===dir);
+  const instanceId=require('node:crypto').randomUUID();
+  const record={instanceId,sessionName:'Primary',profile:profile.name,profileId:profile.id,gameDir:dir,startedAt:Date.now(),state:'preparing',logs:[]};
+  running.set(instanceId,record);lastProfileId=instanceId;rememberLog(instanceId,record.logs);
+  const progress=p=>send('game:progress',{...p,profileId:profile.id,instanceId});
   try{
+    if(duplicate){profile=await require('./game/instance-copies').prepareCopy(profile,new Set([...running.values()].filter(r=>r!==record).map(r=>r.gameDir)));dir=profile.settings.gameDir;record.gameDir=dir;record.sessionName=profile.sessionName;}
     const selectedAccount={...account()},token=await liveToken(selectedAccount.uuid);
     await mods.sync(profile,progress);
     if(['fabric','forge'].includes(profile.loader)){
@@ -310,19 +313,19 @@ ipcMain.handle('game:launch',async(_e,payload)=>{
     }
     const processInfo=await game.launch(profile,{name:selectedAccount.name,uuid:selectedAccount.uuid,accessToken:token},progress,ev=>{
       if(ev.type==='log'){record.logs.push(ev.line);if(record.logs.length>LOG_MAX)record.logs.shift();return;}
-      if(ev.logPath){record.logPath=ev.logPath;recentLogPaths.set(profile.id,ev.logPath);}
+      if(ev.logPath){record.logPath=ev.logPath;recentLogPaths.set(instanceId,ev.logPath);}
       if(ev.type==='running'){record.state='running';saveInstances();if(profile.settings.closeOnLaunch&&win)win.hide();}
-      send('game:event',{...ev,profileId:profile.id,profile:profile.name});
+      send('game:event',{...ev,instanceId,profileId:profile.id,profile:profile.name});
       if(ev.type==='exit'||ev.type==='error'){
-        running.delete(profile.id);saveInstances();
+        running.delete(instanceId);saveInstances();
         const bad=ev.type==='error'||(ev.code!==0&&ev.code!==null);
-        if(bad){const lines=record.logs.length?record.logs.slice(-200):ev.tail||[ev.message||'Java exited before writing output. Full log: '+record.logPath];send('game:crash',{profileId:profile.id,profile:profile.name,code:ev.code,log:lines,logPath:record.logPath});}
+        if(bad){const lines=record.logs.length?record.logs.slice(-200):ev.tail||[ev.message||'Java exited before writing output. Full log: '+record.logPath];send('game:crash',{instanceId,profileId:profile.id,profile:profile.name,code:ev.code,log:lines,logPath:record.logPath});}
         if(win){win.show();win.focus();}
       }
     });
-    if(running.get(profile.id)===record){Object.assign(record,processInfo);recentLogPaths.set(profile.id,processInfo.logPath);saveInstances();}
-    return {ok:true,profileId:profile.id};
-  }catch(error){running.delete(profile.id);saveInstances();return {ok:false,message:error.message};}
+    if(running.get(instanceId)===record){Object.assign(record,processInfo);recentLogPaths.set(instanceId,processInfo.logPath);saveInstances();}
+    return {ok:true,profileId:profile.id,instanceId};
+  }catch(error){running.delete(instanceId);saveInstances();return {ok:false,message:error.message};}
 });
 ipcMain.handle('game:instances',async()=>{await instancesReady;refreshExternalInstances();return instanceList();});
 ipcMain.handle('game:log',(_e,id)=>recentLogs.get(id||lastProfileId)||[]);
@@ -349,23 +352,25 @@ ipcMain.handle('mods:folder', withProfile(({ profile }) => mods.openFolder(profi
 const profileService=require('./game/profiles').createProfileService({
   io:require('./game/io'),store,
   installManaged:(profile,progress)=>require('./game/clientmod').ensure(profile,progress),
-  isRunning:id=>running.has(id)
+  isRunning:id=>[...running.values()].some(r=>r.profileId===id)
 });
+require('./game/directories').configure(id=>[...running.values()].some(r=>r.profileId===id));
 ipcMain.handle('profiles:remove',withProfile(({id})=>profileService.remove(id)));
 const screenshots=require('./screenshots').createScreenshotService({store,io:require('./game/io'),nativeImage:require('electron').nativeImage,shell});
 ipcMain.handle('screenshots:list',withProfile(options=>screenshots.list(options)));
 ipcMain.handle('screenshots:open',withProfile(({id,reveal})=>screenshots.open(id,reveal)));
+ipcMain.handle('screenshots:attach',withProfile(({id,target})=>screenshots.attachment(id).then(image=>net.uploadAttachment({...image,...target}))));
 ipcMain.handle('profiles:versions',()=>require('./game/versions').releases);
 ipcMain.handle('profiles:inherit',withProfile(({sourceId,profile})=>profileService.inherit(sourceId,profile)));
 ipcMain.handle('profiles:plan-version',withProfile(({id,version,loader})=>profileService.plan(id,version,loader)));
 ipcMain.handle('profiles:apply-version',withProfile(({token,choices})=>profileService.apply(token,choices,p=>send('profiles:progress',p))));
 
-ipcMain.handle('store:load', () => store.loadData());
-ipcMain.handle('store:save', (_e, obj) => store.saveData(obj));
+ipcMain.handle('store:load', async () => {await instancesReady;const data=await store.loadData();return data?store.saveData(data):data;});
+ipcMain.handle('store:save', async (_e, obj) => {await instancesReady;return store.saveData(obj);});
 
 ipcMain.handle('net:call', async (_e, { method, args = [] }) => {
   try {
-    if (typeof net[method] !== 'function') throw new Error('Unknown MonkeyNet call.');
+      if (!['friends','requests','addFriend','acceptRequest','declineRequest','removeFriend','history','send','groups','createGroup','updateGroup','leaveGroup','groupHistory','attachment','sendGroup'].includes(method)) throw new Error('Unknown MonkeyNet call.');
     return { ok: true, data: await net[method](...args) };
   } catch (e) { return { ok: false, message: e.message }; }
 });

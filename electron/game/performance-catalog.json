@@ -1,0 +1,728 @@
+{
+  "checked": "2026-09-17T07:06:58.381Z",
+  "profiles": [
+    {
+      "minecraft": "26.3",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "WXHRsMRl",
+          "version": "mc26.3-0.26.1-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/WXHRsMRl/lithium-fabric-0.26.1%2Bmc26.3.jar",
+          "sha1": "91e91c955650afaf98e4acebee060a58ac99ade5",
+          "sha512": "acbb9b037a203f005e03a20bf1d9866019384abb5ad27664808a12b919639a2501ecb52f8f0d77d27e1409935b0dbdbb70e01ac466480c0ae421ee403f649c59"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "ugNfVpVH",
+          "version": "1.17.0+26.3-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/ugNfVpVH/ImmediatelyFast-Fabric-1.17.0%2B26.3.jar",
+          "sha1": "1d97cfe993031ba73424d4ec24b3d67b546ddc54",
+          "sha512": "e2b6cd0fa661ee0fad04441ec4f11379a0d431ccd12a55b00b0d9121c83c54565642af4c79d7e0dc56ec124660273409324a522fab2dc310dde12f4350e10a60"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "Jwq069rR",
+          "version": "3.11.10",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/Jwq069rR/dynamic-fps-3.11.10%2Bminecraft-26.3.0-fabric.jar",
+          "sha1": "a4860c9480f0ce1a468e1e4c254214b1f97e19b3",
+          "sha512": "7976d11411babfa3ac0c38898f26ee6192f22a4f595b637eeae3cc5185f326c0e4b9fd7d00b3d7e8d020dd861295f0df52f9a9d7c67e88946d0ba9fff4a9f894"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "Sp0ctspw",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/Sp0ctspw/BadOptimizations-2.4.1-26.3-fabric.jar",
+          "sha1": "4cc25ce6217326ff14169f5358921773297e9475",
+          "sha512": "048a0979807afb96bae7801b7445746c985081bb55fab9b80b286036234a9869cc84f83c40ab77a2600b7e06ad44178ee17935b706b751c9b38f87ebc6e180f8"
+        }
+      ]
+    },
+    {
+      "minecraft": "26.2",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "f7vZ0VWU",
+          "version": "mc26.2-0.25.3-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/f7vZ0VWU/lithium-fabric-0.25.3%2Bmc26.2.jar",
+          "sha1": "435ad0289209bb72195e7a423756a03f5dfa5a9a",
+          "sha512": "148b638f3c6229fbaf487120a2344a0af5e411a5aa6533d5db9d75da0a8c0d8304f63eb4cca13f4d03b2c9b4c23d559dd74c1d832422ef8a3087bd005e62a8bd"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "d5ddUdiB",
+          "version": "9.0.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar",
+          "sha1": "eac76ff0f3753422c61b2c44487d0d195d88d4bc",
+          "sha512": "d81fa97e11784c19d42f89c2f433831d007603dd7193cee45fa177e4a6a9c52b384b198586e04a0f7f63cd996fed713322578bde9a8db57e1188854ae5cbe584"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "pMWERcSu",
+          "version": "1.16.5+26.2-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/pMWERcSu/ImmediatelyFast-Fabric-1.16.5%2B26.2.jar",
+          "sha1": "0286260261591fe77ba0d332d5d5a2d2e868c2c6",
+          "sha512": "5836b089072c0fd796613d42c3bd01c7e401b6ad53de80328bb9d74d585de9be0ff0cfc4d6ffa1ed41008750573b0525eff8c064162a2f724ad16817a8fdaf22"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "iiF6U3Ne",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/iiF6U3Ne/entityculling-fabric-1.10.5-mc26.2.jar",
+          "sha1": "f66f9d8cbb1f76466aaf45e46fb11b18207e3aef",
+          "sha512": "338813c344a2d924abbaaf249da2b52f5e162bd92407f3099c6ff1bce1c1efecde9df80efcc7b4de3b3a0044cc5735b96594b04da4594bb26793459fc6c960a6"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "pC2JjFw1",
+          "version": "3.11.9",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/pC2JjFw1/dynamic-fps-3.11.9%2Bminecraft-26.2.0-fabric.jar",
+          "sha1": "e8cd9e4fbc6d42091faffc873b0801f1189ed6a5",
+          "sha512": "79b13548d7e9de9abfa23e062724a885e5341f371c500d6570056ecea7db00c2f7ace5a7288179ad8baec575b4aa992b91dccbc940c584cb5cddf0bc7aeb892f"
+        },
+        {
+          "projectId": "51shyZVL",
+          "title": "More Culling",
+          "versionId": "D5oVCouK",
+          "version": "1.8.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-51shyZVL.jar",
+          "url": "https://cdn.modrinth.com/data/51shyZVL/versions/D5oVCouK/moreculling-fabric-26.2-1.8.1.jar",
+          "sha1": "189d90ef598883df8197ea18b510dba21e69bac4",
+          "sha512": "9c331ba5f2ce9c322c41aa577f1029f3420d5507d0d942aadbb43fb9bd82e7da6f72e3a0b26c4ad96394669a99a7feb512b5119b3095fde2e0a437bf68c08b40"
+        },
+        {
+          "projectId": "9s6osm5g",
+          "title": "[Fabric 26.2] v26.2.155",
+          "versionId": "Nv3xnWXd",
+          "version": "26.2.155+fabric",
+          "tier": "maximum",
+          "fileName": "monkey-perf-9s6osm5g.jar",
+          "url": "https://cdn.modrinth.com/data/9s6osm5g/versions/Nv3xnWXd/cloth-config-26.2.155.jar",
+          "sha1": "babcf16dbd15e09d326e21ffe85ab3f7d843ef9e",
+          "sha512": "37b1e402f0df5a383656e21a38ee18cdd15cb4ba3fb62fbeba82ef4b959a4479fc32718ac0d9d154a7d9104c5f7315bfa67dbeced0b8ff240b8039d4848d5df1"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "JmPs4Wie",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/JmPs4Wie/BadOptimizations-2.4.1-26.2-fabric.jar",
+          "sha1": "b36b001f869d04245523807d9ccb26a085f243b4",
+          "sha512": "f91c409d4ce68d027ac0a11b6d2828c5f6d057e749ff0ce596f3a84a65fc1e3905b08f4d97a21a7302e2bfaf4ff865907272bd9c7ffa8487701b22e40dfe2f97"
+        }
+      ]
+    },
+    {
+      "minecraft": "26.2",
+      "loader": "forge",
+      "mods": []
+    },
+    {
+      "minecraft": "26.1.2",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "Oqq8TOAV",
+          "version": "mc26.1.2-0.24.7-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/Oqq8TOAV/lithium-fabric-0.24.7%2Bmc26.1.2.jar",
+          "sha1": "7959f418969ee8bfe50c0f21f352ed08b382f133",
+          "sha512": "37240bdbf93c19fdc6aa632d89223639f0ef9d923ee1793b33d624946b0482cc972834049ed07d71db3494e16c9de68e755937aac7c4ac5d7291bd38c1425899"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "d5ddUdiB",
+          "version": "9.0.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar",
+          "sha1": "eac76ff0f3753422c61b2c44487d0d195d88d4bc",
+          "sha512": "d81fa97e11784c19d42f89c2f433831d007603dd7193cee45fa177e4a6a9c52b384b198586e04a0f7f63cd996fed713322578bde9a8db57e1188854ae5cbe584"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "xOA9hbpf",
+          "version": "1.15.3+26.1-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/xOA9hbpf/ImmediatelyFast-Fabric-1.15.3%2B26.1.jar",
+          "sha1": "0bc5865bcb7f2f09d85559a58fccddcfd335f44d",
+          "sha512": "b665037aee8e76e330f068f640b340b97ce8c0c0e940dfccda8a5b00f772dfa9b2d20594bb950e4f2595b359ad3c27190a4d998da28d4507a9747ab507980d11"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "zAi8nQHj",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/zAi8nQHj/entityculling-fabric-1.10.5-mc26.1.jar",
+          "sha1": "62ac7ed3bbc0b920428bcfc18d1962836b84c391",
+          "sha512": "66fb5518f61a62643eb2901e3d16550fb2ccb496c397f29d1adacf745f4f836805c593cec8560aeab9f2b826cd3af4535d526c4f1ff5a6bde56d5578b3079a18"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "HV67Kt1R",
+          "version": "3.11.7",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/HV67Kt1R/dynamic-fps-3.11.7%2Bminecraft-26.1.0-fabric.jar",
+          "sha1": "2ed66a7f5cf81c8f4b17a551a1f7371ef99a45f7",
+          "sha512": "5feb34934f1f20d0fe65546f65084e9c59ed0ec8e9e80e91dd3ed80dbfc70212bf8cf31f078dc9e7a429edbe5f63774b200c8bd50c8726c4bcd9c74d9b696ab5"
+        },
+        {
+          "projectId": "51shyZVL",
+          "title": "More Culling",
+          "versionId": "PX8FzP3c",
+          "version": "1.7.3",
+          "tier": "maximum",
+          "fileName": "monkey-perf-51shyZVL.jar",
+          "url": "https://cdn.modrinth.com/data/51shyZVL/versions/PX8FzP3c/moreculling-fabric-26.1.2-1.7.3.jar",
+          "sha1": "1155f693ca85a925f790cabac2ef9b1f5984283d",
+          "sha512": "cee2e5e895a034f99fb13eb9b79bc149cbf3baa3dc18195f97a50cd84a2dfc3125a061805e0e0de08bca7e8fdd7c17c99ddd1f22253aad7544bd65a133aacf80"
+        },
+        {
+          "projectId": "9s6osm5g",
+          "title": "[Fabric 26.1] v26.1.154",
+          "versionId": "GFM8zh9J",
+          "version": "26.1.154+fabric",
+          "tier": "maximum",
+          "fileName": "monkey-perf-9s6osm5g.jar",
+          "url": "https://cdn.modrinth.com/data/9s6osm5g/versions/GFM8zh9J/cloth-config-26.1.154.jar",
+          "sha1": "832f9047bc4af13587709c74f7c37e1c8579d1eb",
+          "sha512": "8bfb75f2cac0a9910316c6a368a228c0f8f1261ac6f03dec5fba594e1619ac04334a3df4fb29778d61d0b8290d55949371a523d722b35501bf9a2902956d3b17"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "gjIvugXc",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/gjIvugXc/BadOptimizations-2.4.1-26.1-fabric.jar",
+          "sha1": "9636073ca8f378ea796b5d13bffac146a7f2f0f3",
+          "sha512": "efba144dec306767da3aceb4b179e093daa60bc4c0ba6295d64c166092b8f62e4a4cc63a5bae76fb4c608f1dffa8ecd70c6884e48c804915e1b37ef042e31a99"
+        }
+      ]
+    },
+    {
+      "minecraft": "26.1.2",
+      "loader": "forge",
+      "mods": []
+    },
+    {
+      "minecraft": "26.1.1",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "Oqq8TOAV",
+          "version": "mc26.1.2-0.24.7-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/Oqq8TOAV/lithium-fabric-0.24.7%2Bmc26.1.2.jar",
+          "sha1": "7959f418969ee8bfe50c0f21f352ed08b382f133",
+          "sha512": "37240bdbf93c19fdc6aa632d89223639f0ef9d923ee1793b33d624946b0482cc972834049ed07d71db3494e16c9de68e755937aac7c4ac5d7291bd38c1425899"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "d5ddUdiB",
+          "version": "9.0.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar",
+          "sha1": "eac76ff0f3753422c61b2c44487d0d195d88d4bc",
+          "sha512": "d81fa97e11784c19d42f89c2f433831d007603dd7193cee45fa177e4a6a9c52b384b198586e04a0f7f63cd996fed713322578bde9a8db57e1188854ae5cbe584"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "xOA9hbpf",
+          "version": "1.15.3+26.1-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/xOA9hbpf/ImmediatelyFast-Fabric-1.15.3%2B26.1.jar",
+          "sha1": "0bc5865bcb7f2f09d85559a58fccddcfd335f44d",
+          "sha512": "b665037aee8e76e330f068f640b340b97ce8c0c0e940dfccda8a5b00f772dfa9b2d20594bb950e4f2595b359ad3c27190a4d998da28d4507a9747ab507980d11"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "zAi8nQHj",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/zAi8nQHj/entityculling-fabric-1.10.5-mc26.1.jar",
+          "sha1": "62ac7ed3bbc0b920428bcfc18d1962836b84c391",
+          "sha512": "66fb5518f61a62643eb2901e3d16550fb2ccb496c397f29d1adacf745f4f836805c593cec8560aeab9f2b826cd3af4535d526c4f1ff5a6bde56d5578b3079a18"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "HV67Kt1R",
+          "version": "3.11.7",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/HV67Kt1R/dynamic-fps-3.11.7%2Bminecraft-26.1.0-fabric.jar",
+          "sha1": "2ed66a7f5cf81c8f4b17a551a1f7371ef99a45f7",
+          "sha512": "5feb34934f1f20d0fe65546f65084e9c59ed0ec8e9e80e91dd3ed80dbfc70212bf8cf31f078dc9e7a429edbe5f63774b200c8bd50c8726c4bcd9c74d9b696ab5"
+        },
+        {
+          "projectId": "51shyZVL",
+          "title": "More Culling",
+          "versionId": "PX8FzP3c",
+          "version": "1.7.3",
+          "tier": "maximum",
+          "fileName": "monkey-perf-51shyZVL.jar",
+          "url": "https://cdn.modrinth.com/data/51shyZVL/versions/PX8FzP3c/moreculling-fabric-26.1.2-1.7.3.jar",
+          "sha1": "1155f693ca85a925f790cabac2ef9b1f5984283d",
+          "sha512": "cee2e5e895a034f99fb13eb9b79bc149cbf3baa3dc18195f97a50cd84a2dfc3125a061805e0e0de08bca7e8fdd7c17c99ddd1f22253aad7544bd65a133aacf80"
+        },
+        {
+          "projectId": "9s6osm5g",
+          "title": "[Fabric 26.1] v26.1.154",
+          "versionId": "GFM8zh9J",
+          "version": "26.1.154+fabric",
+          "tier": "maximum",
+          "fileName": "monkey-perf-9s6osm5g.jar",
+          "url": "https://cdn.modrinth.com/data/9s6osm5g/versions/GFM8zh9J/cloth-config-26.1.154.jar",
+          "sha1": "832f9047bc4af13587709c74f7c37e1c8579d1eb",
+          "sha512": "8bfb75f2cac0a9910316c6a368a228c0f8f1261ac6f03dec5fba594e1619ac04334a3df4fb29778d61d0b8290d55949371a523d722b35501bf9a2902956d3b17"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "gjIvugXc",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/gjIvugXc/BadOptimizations-2.4.1-26.1-fabric.jar",
+          "sha1": "9636073ca8f378ea796b5d13bffac146a7f2f0f3",
+          "sha512": "efba144dec306767da3aceb4b179e093daa60bc4c0ba6295d64c166092b8f62e4a4cc63a5bae76fb4c608f1dffa8ecd70c6884e48c804915e1b37ef042e31a99"
+        }
+      ]
+    },
+    {
+      "minecraft": "26.1.1",
+      "loader": "forge",
+      "mods": []
+    },
+    {
+      "minecraft": "26.1",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "Oqq8TOAV",
+          "version": "mc26.1.2-0.24.7-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/Oqq8TOAV/lithium-fabric-0.24.7%2Bmc26.1.2.jar",
+          "sha1": "7959f418969ee8bfe50c0f21f352ed08b382f133",
+          "sha512": "37240bdbf93c19fdc6aa632d89223639f0ef9d923ee1793b33d624946b0482cc972834049ed07d71db3494e16c9de68e755937aac7c4ac5d7291bd38c1425899"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "d5ddUdiB",
+          "version": "9.0.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar",
+          "sha1": "eac76ff0f3753422c61b2c44487d0d195d88d4bc",
+          "sha512": "d81fa97e11784c19d42f89c2f433831d007603dd7193cee45fa177e4a6a9c52b384b198586e04a0f7f63cd996fed713322578bde9a8db57e1188854ae5cbe584"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "xOA9hbpf",
+          "version": "1.15.3+26.1-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/xOA9hbpf/ImmediatelyFast-Fabric-1.15.3%2B26.1.jar",
+          "sha1": "0bc5865bcb7f2f09d85559a58fccddcfd335f44d",
+          "sha512": "b665037aee8e76e330f068f640b340b97ce8c0c0e940dfccda8a5b00f772dfa9b2d20594bb950e4f2595b359ad3c27190a4d998da28d4507a9747ab507980d11"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "zAi8nQHj",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/zAi8nQHj/entityculling-fabric-1.10.5-mc26.1.jar",
+          "sha1": "62ac7ed3bbc0b920428bcfc18d1962836b84c391",
+          "sha512": "66fb5518f61a62643eb2901e3d16550fb2ccb496c397f29d1adacf745f4f836805c593cec8560aeab9f2b826cd3af4535d526c4f1ff5a6bde56d5578b3079a18"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "HV67Kt1R",
+          "version": "3.11.7",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/HV67Kt1R/dynamic-fps-3.11.7%2Bminecraft-26.1.0-fabric.jar",
+          "sha1": "2ed66a7f5cf81c8f4b17a551a1f7371ef99a45f7",
+          "sha512": "5feb34934f1f20d0fe65546f65084e9c59ed0ec8e9e80e91dd3ed80dbfc70212bf8cf31f078dc9e7a429edbe5f63774b200c8bd50c8726c4bcd9c74d9b696ab5"
+        },
+        {
+          "projectId": "51shyZVL",
+          "title": "More Culling",
+          "versionId": "PX8FzP3c",
+          "version": "1.7.3",
+          "tier": "maximum",
+          "fileName": "monkey-perf-51shyZVL.jar",
+          "url": "https://cdn.modrinth.com/data/51shyZVL/versions/PX8FzP3c/moreculling-fabric-26.1.2-1.7.3.jar",
+          "sha1": "1155f693ca85a925f790cabac2ef9b1f5984283d",
+          "sha512": "cee2e5e895a034f99fb13eb9b79bc149cbf3baa3dc18195f97a50cd84a2dfc3125a061805e0e0de08bca7e8fdd7c17c99ddd1f22253aad7544bd65a133aacf80"
+        },
+        {
+          "projectId": "9s6osm5g",
+          "title": "[Fabric 26.1] v26.1.154",
+          "versionId": "GFM8zh9J",
+          "version": "26.1.154+fabric",
+          "tier": "maximum",
+          "fileName": "monkey-perf-9s6osm5g.jar",
+          "url": "https://cdn.modrinth.com/data/9s6osm5g/versions/GFM8zh9J/cloth-config-26.1.154.jar",
+          "sha1": "832f9047bc4af13587709c74f7c37e1c8579d1eb",
+          "sha512": "8bfb75f2cac0a9910316c6a368a228c0f8f1261ac6f03dec5fba594e1619ac04334a3df4fb29778d61d0b8290d55949371a523d722b35501bf9a2902956d3b17"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "gjIvugXc",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/gjIvugXc/BadOptimizations-2.4.1-26.1-fabric.jar",
+          "sha1": "9636073ca8f378ea796b5d13bffac146a7f2f0f3",
+          "sha512": "efba144dec306767da3aceb4b179e093daa60bc4c0ba6295d64c166092b8f62e4a4cc63a5bae76fb4c608f1dffa8ecd70c6884e48c804915e1b37ef042e31a99"
+        }
+      ]
+    },
+    {
+      "minecraft": "26.1",
+      "loader": "forge",
+      "mods": []
+    },
+    {
+      "minecraft": "1.21.11",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "Ow7wA0kG",
+          "version": "mc1.21.11-0.21.4-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/Ow7wA0kG/lithium-fabric-0.21.4%2Bmc1.21.11.jar",
+          "sha1": "203bdcb26e97b3217b045e1182651a7d7b6462ec",
+          "sha512": "f14a5c3d2fad786347ca25083f902139694f618b7c103947f2fd067a7c5ee88a63e1ef8926f7d693ea79ed7d00f57317bae77ef9c2d630bf5ed01ac97a752b94"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "Ii0gP3D8",
+          "version": "8.2.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/Ii0gP3D8/ferritecore-8.2.0-fabric.jar",
+          "sha1": "c2e2f5e008f5bc9f401dfad8ca94909917006b65",
+          "sha512": "3210926a82eb32efd9bcebabe2f6c053daf5c4337eebc6d5bacba96d283510afbde646e7e195751de795ec70a2ea44fef77cb54bf22c8e57bb832d6217418869"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "4EwhsTu7",
+          "version": "1.14.3+1.21.11-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/4EwhsTu7/ImmediatelyFast-Fabric-1.14.3%2B1.21.11.jar",
+          "sha1": "43e451464f979bdf9ff4ac288b358a2f91b79ed8",
+          "sha512": "2564cb28259352c3aa5759aceca62667de08a7860a40910dad40a043af851a074b2d75cef50b9fa6f1971febb3a5ecebe4067cbd4b60e63ef711b85f4bc21407"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "sP0vNbeN",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/sP0vNbeN/entityculling-fabric-1.10.5-mc1.21.11.jar",
+          "sha1": "270493a6d3a3214495abed9e74f2181817043963",
+          "sha512": "67c4fb10bec6dba3368e65cd57f1bb53b9ca4172b2dc391c3d524f2c6e88c8782d8ff5f9634d549fbf7590296d18042cca84b12f3a8035a12f2ab555420df5a9"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "Fab7e5Th",
+          "version": "3.11.6",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/Fab7e5Th/dynamic-fps-3.11.6%2Bminecraft-1.21.11-fabric.jar",
+          "sha1": "2e5ab45e69b43812491cfa34f8f7a4ce7623c233",
+          "sha512": "c45652252e2176cb8e2c44dfd9032c617135a100dcf161b9e6e6717803c14d1359d0f940fa10dc1aa6ad80669983f4b9c5636c0c2953d3314e06f893f0cdc736"
+        },
+        {
+          "projectId": "51shyZVL",
+          "title": "More Culling",
+          "versionId": "wOzykoLV",
+          "version": "1.6.2",
+          "tier": "maximum",
+          "fileName": "monkey-perf-51shyZVL.jar",
+          "url": "https://cdn.modrinth.com/data/51shyZVL/versions/wOzykoLV/moreculling-fabric-1.21.11-1.6.2.jar",
+          "sha1": "11a929de62650cc536244d4c2ba889fa84c1c0f2",
+          "sha512": "58cec88e84835c543d8604411f89a0984abe51f0332860354355ede290d2442fc33a86ecda1766e0b1a82ba4edfab27f3c9f6855c0af3234e200218b892756f2"
+        },
+        {
+          "projectId": "9s6osm5g",
+          "title": "[Fabric 1.21.11] v21.11.153",
+          "versionId": "xuX40TN5",
+          "version": "21.11.153+fabric",
+          "tier": "maximum",
+          "fileName": "monkey-perf-9s6osm5g.jar",
+          "url": "https://cdn.modrinth.com/data/9s6osm5g/versions/xuX40TN5/cloth-config-21.11.153-fabric.jar",
+          "sha1": "4c224606a963bce223db5b27edb4959ecf40d4ee",
+          "sha512": "8f455489d4b71069e998568cf4e1450116f4360a4eb481cd89117f629c6883164886cf63ca08ac4fc929dd13d1112152755a6216d4a1498ee6406ef102093e51"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "Q3Dusz2j",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/Q3Dusz2j/BadOptimizations-2.4.1-1.21.11.jar",
+          "sha1": "70fa28d5a7a1fdd61dd804ca6ac411750da1473f",
+          "sha512": "ff91f1866f21a13a32d379080b8efb5d4e07577591228c1d307b34d052696c9bdcbaf7706208dfbac56abc2c29482a15edcbf11f69fc0a01e459c4c20a5c2c28"
+        }
+      ]
+    },
+    {
+      "minecraft": "1.21.11",
+      "loader": "forge",
+      "mods": []
+    },
+    {
+      "minecraft": "1.21.10",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "NsswKiwi",
+          "version": "mc1.21.10-0.20.1-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/NsswKiwi/lithium-fabric-0.20.1%2Bmc1.21.10.jar",
+          "sha1": "7d44f5da9c690bbf1bd6d65c1acc81db5cf7f8c6",
+          "sha512": "79b2892d123f3bb12649927dd8fccc25c955ff38a19f3aba7cd0180c4cf5506c2a76d49418b13050f90bba7bb59f3623af06e8a275e2ae8c63808084043902bb"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "bPLllEgi",
+          "version": "8.1.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/bPLllEgi/ferritecore-8.1.0-fabric.jar",
+          "sha1": "fbc854f0a30657a0f8b4a5c79ce6580f3f8fbea9",
+          "sha512": "0596c83d69867380260e20500e5ab184415a1178317464c2b7c8c68a87db435fbe7a80b22b4f50b56558d6506f7dbb35ad7bda16f46eab5b79d38f0d726f08f5"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "9hztj0xA",
+          "version": "1.13.6+1.21.10-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/9hztj0xA/ImmediatelyFast-Fabric-1.13.6%2B1.21.10.jar",
+          "sha1": "582290ea96fb51c7a3e21d11f5c5701d798c1341",
+          "sha512": "8a27787f33b524c53d30d95b2fb2eb074d8041d88aebcc7969f25c588a87008c4cd3e09048932a1ff628eb5abc20529173ebbe0ccee92a77bc9ffa5313244db8"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "2kbLrpzR",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/2kbLrpzR/entityculling-fabric-1.10.5-mc1.21.10.jar",
+          "sha1": "b50211ad48dbda7b6d485122978e6143321e09f2",
+          "sha512": "0f1070fd7a17e9bfc74682ac4b3e7412a16cd8ddc7c1f7e0a4881ca05b486e5f7e2c90734308433f3dbc7a8de9d14d0b1179832451a169f75a31c240f88f262f"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "UuDaIv5m",
+          "version": "3.11.6",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/UuDaIv5m/dynamic-fps-3.11.6%2Bminecraft-1.21.9-fabric.jar",
+          "sha1": "3042895b83be70beec30973c3c0bb7630e3894dc",
+          "sha512": "fb656443d3befcc31cbf54c847b896fa1afe25a76d7b85cb586b5ee1ff7498a3192a6a5779b56ef4b64ebe931f5d29c7fe00c277de7633044e36e2aa9933f846"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "dOFYYhIv",
+          "version": "2.4.1",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/dOFYYhIv/BadOptimizations-2.4.1-1.21.10.jar",
+          "sha1": "1afd5c9c6a1d5970285d1b08af1fa6c7585842dc",
+          "sha512": "f6a96fb3cbd8db2dc6af402c591f0c6f8259e8df9d7799c55e013fb00503b7585ffb45b6f05d7d4cf9b270af7c625bd74d17e8bd72d2b2e8d1141bde90b35268"
+        }
+      ]
+    },
+    {
+      "minecraft": "1.21.10",
+      "loader": "forge",
+      "mods": [
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "rpjMU09v",
+          "version": "1.10.5",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/rpjMU09v/entityculling-forge-1.10.5-mc1.21.10.jar",
+          "sha1": "d1c0541951aaee86d1c65ade58cd123080508da2",
+          "sha512": "9282cc4a61bc8f4b662dbe3738f00258c6d903f7e80b583232ba1162eef96774b9e0cf9e067f3f6e6ca1732abd3bae0aa8755ad44f410dfcf108e09f54b4ea19"
+        }
+      ]
+    },
+    {
+      "minecraft": "1.21.9",
+      "loader": "fabric",
+      "mods": [
+        {
+          "projectId": "gvQqBUqZ",
+          "title": "Lithium",
+          "versionId": "L1sSIxFm",
+          "version": "mc1.21.9-0.19.2-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-gvQqBUqZ.jar",
+          "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/L1sSIxFm/lithium-fabric-0.19.2%2Bmc1.21.9.jar",
+          "sha1": "0f9b70bd70c14f293b76e90917dd7de78c47c073",
+          "sha512": "ecbebb18f82e589c1d24056b6cfe6a923acb8fea5dd038ed931568db7dc8dad1cfe4b42f9c0f7752ba45f39d4f0cab219deb61fcb54bcc7252c9fe34afc2549a"
+        },
+        {
+          "projectId": "uXXizFIs",
+          "title": "FerriteCore",
+          "versionId": "bPLllEgi",
+          "version": "8.1.0-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-uXXizFIs.jar",
+          "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/bPLllEgi/ferritecore-8.1.0-fabric.jar",
+          "sha1": "fbc854f0a30657a0f8b4a5c79ce6580f3f8fbea9",
+          "sha512": "0596c83d69867380260e20500e5ab184415a1178317464c2b7c8c68a87db435fbe7a80b22b4f50b56558d6506f7dbb35ad7bda16f46eab5b79d38f0d726f08f5"
+        },
+        {
+          "projectId": "5ZwdcRci",
+          "title": "ImmediatelyFast",
+          "versionId": "9hztj0xA",
+          "version": "1.13.6+1.21.10-fabric",
+          "tier": "balanced",
+          "fileName": "monkey-perf-5ZwdcRci.jar",
+          "url": "https://cdn.modrinth.com/data/5ZwdcRci/versions/9hztj0xA/ImmediatelyFast-Fabric-1.13.6%2B1.21.10.jar",
+          "sha1": "582290ea96fb51c7a3e21d11f5c5701d798c1341",
+          "sha512": "8a27787f33b524c53d30d95b2fb2eb074d8041d88aebcc7969f25c588a87008c4cd3e09048932a1ff628eb5abc20529173ebbe0ccee92a77bc9ffa5313244db8"
+        },
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "YkqoVa13",
+          "version": "1.9.3",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/YkqoVa13/entityculling-fabric-1.9.3-mc1.21.10.jar",
+          "sha1": "db022121a0326fe346faa7ff2412a61758b91c0a",
+          "sha512": "e6828fed75063b8ce8ebd4ee0c2b35d4abe8c990b9bf3c4af7347eca6305bc3fa3001f1de64cd4032ed8e23e67035f9047cd04a2be48e04d57481c46679fd857"
+        },
+        {
+          "projectId": "LQ3K71Q1",
+          "title": "Dynamic FPS",
+          "versionId": "UuDaIv5m",
+          "version": "3.11.6",
+          "tier": "balanced",
+          "fileName": "monkey-perf-LQ3K71Q1.jar",
+          "url": "https://cdn.modrinth.com/data/LQ3K71Q1/versions/UuDaIv5m/dynamic-fps-3.11.6%2Bminecraft-1.21.9-fabric.jar",
+          "sha1": "3042895b83be70beec30973c3c0bb7630e3894dc",
+          "sha512": "fb656443d3befcc31cbf54c847b896fa1afe25a76d7b85cb586b5ee1ff7498a3192a6a5779b56ef4b64ebe931f5d29c7fe00c277de7633044e36e2aa9933f846"
+        },
+        {
+          "projectId": "g96Z4WVZ",
+          "title": "BadOptimizations",
+          "versionId": "6uGJM3JZ",
+          "version": "2.3.3",
+          "tier": "maximum",
+          "fileName": "monkey-perf-g96Z4WVZ.jar",
+          "url": "https://cdn.modrinth.com/data/g96Z4WVZ/versions/6uGJM3JZ/BadOptimizations-2.3.3-1.21.9-21.10.jar",
+          "sha1": "20e1b894d40fea2cd13abcf32f224609445621ae",
+          "sha512": "537ac9bbf9674e6bca4a984bf6638e3912f8426889645485d3903a4af2a1681f4bf117677a4abd5f6bda0ed1700ac7adf83ba84194c66f09fed7849e7bd1e6dc"
+        }
+      ]
+    },
+    {
+      "minecraft": "1.21.9",
+      "loader": "forge",
+      "mods": [
+        {
+          "projectId": "NNAgCjsB",
+          "title": "Entity Culling",
+          "versionId": "upphg4xl",
+          "version": "1.9.3",
+          "tier": "balanced",
+          "fileName": "monkey-perf-NNAgCjsB.jar",
+          "url": "https://cdn.modrinth.com/data/NNAgCjsB/versions/upphg4xl/entityculling-forge-1.9.3-mc1.21.10.jar",
+          "sha1": "b30fc7d2700d2c0bfbe1c21e61206a476cc18e97",
+          "sha512": "b560d50dcbd4285a2953c0523c8a408d96f5f2e9192b4a1f70d2e8c239f5c676d0af7e4052264f0ff39d457c2605193f4f644962702a54fa70894acba937d4a8"
+        }
+      ]
+    }
+  ]
+}
