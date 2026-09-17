@@ -1,110 +1,110 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "releases": [
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.3",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+26.3-fabric.jar",
-      "sha256": "0f3d08c03b8af06f788c671d980797953f0aa9299b5c945e421d9538a706d490"
+      "file": "monkeyclient-0.6.0+26.3-fabric.jar",
+      "sha256": "e55c1f4073f366d6579756a64552c4b7e1273ec4c772b6887092b00dbbd2a528"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.2",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+26.2-fabric.jar",
-      "sha256": "2a5d9316dccfb988ba00588ee5ffaa1828f3611ebb50177facf21832bf662956"
+      "file": "monkeyclient-0.6.0+26.2-fabric.jar",
+      "sha256": "8fc5aa3c1e1459d7ad91abc10578aa554cc28c11b90e8780dbcdbe0fe35ea42b"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.2",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+26.2-forge.jar",
-      "sha256": "14376cb843fd4c1c47f78dd144bc084922727ceee83ade0155b10497309a57e9"
+      "file": "monkeyclient-0.6.0+26.2-forge.jar",
+      "sha256": "ff3c27bb20cbb372066043f1068ca1570952ae16a0718aad36493d974bc52546"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.1.2",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+26.1.2-fabric.jar",
-      "sha256": "f0328e6bf4ef3941bcf6f65a94e1eaf6d2130f2e0c8144ac28d24d80502e144d"
+      "file": "monkeyclient-0.6.0+26.1.2-fabric.jar",
+      "sha256": "b744ca04bbb7da80b944c171884fde3c9cfb9b3b1f19324a0138c1bf23e21c60"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.1.2",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+26.1.2-forge.jar",
-      "sha256": "c81b1afe3b9d414889d3e04ad1161089d09955257958b990a267c097e9299d57"
+      "file": "monkeyclient-0.6.0+26.1.2-forge.jar",
+      "sha256": "00e1778cee055255f2cac3efa3e752f57008a9ecc0d380474cf1988d72ebe146"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.1.1",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+26.1.1-fabric.jar",
-      "sha256": "0cc367c18633020fd94b0d26c58ab52be123d0b5ea475883dc99aee02944062d"
+      "file": "monkeyclient-0.6.0+26.1.1-fabric.jar",
+      "sha256": "0b850489625413cb0059b226b65b7b01a636261abf52166f5b4b45fa2d588571"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.1.1",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+26.1.1-forge.jar",
-      "sha256": "601e907af5e992c94ae2dc322002c9a34f7cadf2a484d57ce2dcb2655e47e479"
+      "file": "monkeyclient-0.6.0+26.1.1-forge.jar",
+      "sha256": "967ae6dac8eaa01645808ce3ce9ce16f2bd1b17ea8c6a4b7dad44ae4a9bfa89f"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.1",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+26.1-fabric.jar",
-      "sha256": "539f9747133c04183f12ac9db3bf568f0115e7a8ae37253e8261607ed5ad9866"
+      "file": "monkeyclient-0.6.0+26.1-fabric.jar",
+      "sha256": "fb2b66b70458fcfc217f0dfc45841780f6bbaeb3990dd3d36f60272b710fe0fe"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "26.1",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+26.1-forge.jar",
-      "sha256": "695d9eebd6a568c92e4cff76dfd44329080f90beddd157fecdf1acec098f045e"
+      "file": "monkeyclient-0.6.0+26.1-forge.jar",
+      "sha256": "aea629565e5699ea2f90928a5ea45101f0a4c73e6683b0b9f72a4fffde29b303"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "1.21.11",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+1.21.11-fabric.jar",
-      "sha256": "940dcd9b893efdba8c42828afe5b2253298d2d96cfd308559bdf386265cc710f"
+      "file": "monkeyclient-0.6.0+1.21.11-fabric.jar",
+      "sha256": "8b366fc6942dc67bdb7d082c8de005d193bbcab69a3e35e61bd682c322aeb9fa"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "1.21.11",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+1.21.11-forge.jar",
-      "sha256": "25886898700e9f5ffd61bf87248b02734b39fe38c41724d56c63e6043ea17fa4"
+      "file": "monkeyclient-0.6.0+1.21.11-forge.jar",
+      "sha256": "e7df8f87983b4deda39eacb8d2e76ad17b1e0f8c91e552f1482135dc428a0daf"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "1.21.10",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+1.21.10-fabric.jar",
-      "sha256": "67143b112271c4b6f5797e48ff7b209e1eb532c35b739a80e2843f4fc5d84991"
+      "file": "monkeyclient-0.6.0+1.21.10-fabric.jar",
+      "sha256": "f2705963c7a99b7147200dc73ec4be79f5119b5585394ad76090787a08299498"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "1.21.10",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+1.21.10-forge.jar",
-      "sha256": "39f98e43600302012ef3b07cb97abb9f2aee343b429cf9d49b29c5c98c712bed"
+      "file": "monkeyclient-0.6.0+1.21.10-forge.jar",
+      "sha256": "aa4e6a02123af3395a34b3313a58492731795da977ed04555dcce0cbca6b0505"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "1.21.9",
       "loader": "fabric",
-      "file": "monkeyclient-0.5.0+1.21.9-fabric.jar",
-      "sha256": "956c8e96c7af048bc9e58da493459192d3051397347fc2e04f680dba465df041"
+      "file": "monkeyclient-0.6.0+1.21.9-fabric.jar",
+      "sha256": "394d8f1e55ae02ef5277c3cb2abeed50fc66db28c075c16709eaa12d8c7864b8"
     },
     {
-      "version": "0.5.0",
+      "version": "0.6.0",
       "minecraft": "1.21.9",
       "loader": "forge",
-      "file": "monkeyclient-0.5.0+1.21.9-forge.jar",
-      "sha256": "3bfde1391d97a84619a6c561a912126a690695d451c9af94c2ac40bcf070eed1"
+      "file": "monkeyclient-0.6.0+1.21.9-forge.jar",
+      "sha256": "6b3dc2807fda502f503e3bf99ab343600d6aaab3c87a3ef21f6bd9e1b929e2b7"
     }
   ]
 }

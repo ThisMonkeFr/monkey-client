@@ -39,7 +39,14 @@ async function verified(file, expectedSha1, size) {
   } catch { return false; }
 }
 
-async function download(url, dest, { sha1: want, size, retries = 3 } = {}) {
+const downloads=new Map();
+async function download(url,dest,options={}){
+ const key=path.resolve(dest);const previous=downloads.get(key);
+ if(previous){await previous;return download(url,dest,options);}
+ const pending=downloadFile(url,dest,options);downloads.set(key,pending);
+ try{return await pending;}finally{if(downloads.get(key)===pending)downloads.delete(key);}
+}
+async function downloadFile(url, dest, { sha1: want, size, retries = 3 } = {}) {
   if (await verified(dest, want, size)) return { skipped: true, bytes: size || 0 };
   await ensureDir(path.dirname(dest));
   let lastErr;

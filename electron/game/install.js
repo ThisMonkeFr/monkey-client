@@ -75,11 +75,23 @@ async function resolve(mcVersion, loader) {
 }
 
 /* --- what needs downloading ------------------------------------------ */
+function nativeMatches(classifier,platform=process.platform,arch=process.arch){
+  if(!classifier)return true;
+  const os={win32:'windows',darwin:'macos',linux:'linux'}[platform];
+  if(classifier==='natives-macos-patch')return platform==='darwin';
+  if(classifier.startsWith('natives-'))return classifier.replace('natives-osx','natives-macos')===`natives-${os}${arch==='arm64'?'-arm64':arch==='ia32'?'-x86':''}`;
+  const netty=/^(linux|osx)-(aarch_64|x86_64)$/.exec(classifier);
+  return !netty||(netty[1]===(platform==='darwin'?'osx':platform)&&netty[2]===(arch==='arm64'?'aarch_64':'x86_64'));
+}
 function libraryTasks(version) {
   const jars = [];      // classpath entries
   const natives = [];   // archives to unpack next to the game
   for (const lib of version.libraries || []) {
     if (!allowed(lib.rules)) continue;
+    // Recent manifests list every CPU's native JAR under the same OS rule.
+    // Loading/extracting all three overwrites x64 DLLs with x86/ARM builds.
+    const nativeClassifier = (lib.name || '').split(':')[3];
+    if (!nativeMatches(nativeClassifier)) continue;
     const d = lib.downloads || {};
     if (d.artifact) {
       const isNative = /:natives-/.test(lib.name || '');
@@ -137,7 +149,7 @@ async function install(mcVersion, loader, onProgress = () => {}) {
     fabricJars.push({ file: shared('libraries', l.path), url: l.url, sha1: l.sha1, size: l.size });
   }
 
-  const all = [client, ...jars, ...natives, ...fabricJars, ...objects];
+  const all = [...new Map([client, ...jars, ...natives, ...fabricJars, ...objects].map(task => [task.file, task])).values()];
   const totalBytes = all.reduce((n, t) => n + (t.size || 0), 0) || 1;
   let doneBytes = 0, doneCount = 0;
 
@@ -168,4 +180,4 @@ async function install(mcVersion, loader, onProgress = () => {}) {
   };
 }
 
-module.exports = { install, resolve, versionJson, manifest, fabricLoaders };
+module.exports = { install, resolve, versionJson, manifest, fabricLoaders, libraryTasks, nativeMatches };

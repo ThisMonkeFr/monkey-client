@@ -42,7 +42,7 @@ async function prepare(profile, account, onProgress) {
   const javaBin = await java.ensure(version, profile.settings.customJava && profile.settings.javaPath, onProgress);
 
   onProgress({ stage: 'natives', pct: 92, detail: 'Unpacking native libraries' });
-  const nativesDir = path.join(gameDir, 'natives');
+  const nativesDir = path.join(gameDir, `natives-${process.platform}-${process.arch}-${version.id}`);
   await unpackNatives(built.natives, nativesDir);
 
   const vars = {
@@ -128,12 +128,14 @@ async function launch(profile, account, onProgress, onEvent) {
   ].join('\n');
   log.write(header);
 
-  /* Detached on every platform, so closing the launcher never takes the game
-     with it. javaw has no console, so a new process group is invisible. */
-  const child = spawn(javaBin, args, {
+  // Java's argument file avoids Windows' command-line length limit. Delete it
+  // after the process exits: it contains the session token, unlike the log.
+  const argsPath = path.join(logDir, `launch-${stamp}.args`);
+  await fsp.writeFile(argsPath, args.map(quoteJavaArgument).join('\n'), { mode: 0o600 });
+  const child = spawn(javaBin, ['@' + argsPath], {
     cwd: gameDir,
     detached: true,
-    windowsHide: false,
+    windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe']
   });
   child.unref();
@@ -158,12 +160,14 @@ async function launch(profile, account, onProgress, onEvent) {
   child.stderr.on('data', watch);
 
   child.on('error', e => {
+    fsp.unlink(argsPath).catch(() => {});
     log.write(`\n[launcher] could not start Java: ${e.message}\n`);
     log.end();
     onEvent({ type: 'error', message: `Could not start Java: ${e.message}`, logPath });
   });
 
   child.on('close', code => {
+    fsp.unlink(argsPath).catch(() => {});
     log.write(`\n--- exited with code ${code} ---\n`);
     log.end();
     /* Java reports crashes as unsigned on Windows; -1 shows as 4294967295.
@@ -172,7 +176,7 @@ async function launch(profile, account, onProgress, onEvent) {
     onEvent({
       type: 'exit', code: signed, logPath,
       crashed: signed !== 0,
-      tail: signed !== 0 ? tail.slice(-60) : []
+      tail: signed !== 0 ? (tail.length ? tail.slice(-100) : [`Java exited before writing output. Runtime: ${javaBin}`, `Full launch log: ${logPath}`]) : []
     });
   });
 
@@ -181,4 +185,7 @@ async function launch(profile, account, onProgress, onEvent) {
   return { pid: child.pid, logPath, kill: () => child.kill() };
 }
 
-module.exports = { launch, prepare };
+function quoteJavaArgument(value) {
+  return '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n') + '"';
+}
+module.exports = { launch, prepare, quoteJavaArgument };

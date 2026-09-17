@@ -92,6 +92,27 @@ function createProfileService({io,store,fetchImpl=fetch,installManaged=async()=>
    throw error;
   }finally{busy.delete(p.id);await fs.rm(stage,{recursive:true,force:true}).catch(()=>{});}
  }
- return {inherit,plan,apply,inventory,isBusy:id=>busy.has(id)};
+ async function remove(id){
+  if(isRunning(id)||busy.has(id))throw Error('Close this profile before deleting it.');
+  busy.add(id);
+  let moved=false,root,stage;
+  try{
+   const {data,profile}=await saved(id);directory(profile);
+   root=path.resolve(io.instance(id));const parent=path.resolve(io.instance('.'));
+   if(path.dirname(root)!==parent||path.basename(root)!==id)throw Error('Invalid instance directory');
+   for(const other of data.profiles||[])if(other.id!==id){const d=directory(other);if(d===root||d.startsWith(root+path.sep))throw Error('Another profile uses this instance folder. Change its game directory first.');}
+   const stat=await fs.lstat(root).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
+   if(stat?.isSymbolicLink())throw Error('This instance folder is a link. Its files were preserved.');
+   stage=path.join(parent,'.deleting-'+id+'-'+crypto.randomUUID());
+   if(stat){await fs.rename(root,stage);moved=true;}
+   data.profiles=data.profiles.filter(p=>p.id!==id);
+   if(data.selId===id)data.selId=data.profiles[0]?.id||null;
+   try{await store.saveData(data);}catch(error){if(moved)await fs.rename(stage,root);moved=false;throw error;}
+   let cleanupWarning=null;
+   if(moved)try{await fs.rm(stage,{recursive:true,force:true,maxRetries:3,retryDelay:150});}catch(error){cleanupWarning='The profile was removed, but some files are locked: '+stage;}
+   return {profiles:data.profiles,selId:data.selId,customDirectoryPreserved:!!profile.settings?.gameDir&&path.resolve(profile.settings.gameDir)!==root,cleanupWarning};
+  }finally{busy.delete(id);}
+ }
+ return {inherit,plan,apply,inventory,remove,isBusy:id=>busy.has(id)};
 }
 module.exports={createProfileService,fileName};

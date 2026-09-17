@@ -562,11 +562,11 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
   border-color var(--t1) linear,filter var(--t1) linear}
 .ed-toolbar button:hover{transform:translateY(-2px)}
 .ed-swatches button:hover{transform:scale(1.16)}
-</style><link rel="stylesheet" href="theme-polish.css"><link rel="stylesheet" href="vanilla.css">
+</style><link rel="stylesheet" href="theme-polish.css"><link rel="stylesheet" href="vanilla.css"><link rel="stylesheet" href="monkey.css">
 
 <div id="app">
   <header class="tb">
-    <div class="title">Monkey Client <i>0.7.0</i></div>
+    <div class="title">Monkey Client <i>0.8.0</i></div>
     <div class="grow"></div>
     <div id="tbright" class="row"></div>
     <div class="wc">
@@ -589,7 +589,7 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
       <button class="tool stone" data-act="website" title="Project page">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="square" stroke-linejoin="round"><path d="M13.5 3.5 5 13h5l-1.5 7.5L18 11h-5z"/><circle cx="12" cy="12" r="9.2" stroke-dasharray="3.5 3"/></svg></button>
     </div>
-    <div class="foot"><b>Monkey Client 0.7.0</b></div>
+    <div class="foot"><b>Monkey Client 0.8.0</b></div>
   </nav>
 
   <div class="main">
@@ -683,6 +683,7 @@ function applyTheme(t){
   const set = (k,v) => r.setProperty(k,v);
   const A = th.accent, B = th.bg, P = th.panel;
   document.documentElement.dataset.theme=(th.name||'custom').toLowerCase();
+  document.documentElement.dataset.menuStyle=S.menuStyle||'monkey';
   set('--leaf', A);
   set('--leaf2', shade(A,.3));
   set('--leafd', shade(A,-.34));
@@ -706,7 +707,8 @@ function applyTheme(t){
   set('--line', shade(P,.15));
   set('--line2', shade(P,.34));
   const text=th.text||'#EFF6ED';
-  ['--tx','--dim','--mute','--on-tx','--on-dim'].forEach(k=>set(k,text));
+  set('--tx',text);set('--dim',th.textDim||shade(text,-.18));set('--mute',th.textDim||shade(text,-.28));set('--on-tx',text);set('--on-dim',th.textDim||text);
+  if(typeof BG!=='undefined')BG.dirty=true;
 }
 
 /* ---------- persistence ---------- */
@@ -717,7 +719,7 @@ async function save(){
     skins:S.skins, capes:S.capes, activeSkin:S.activeSkin, activeCape:S.activeCape,
     friends:S.friends, requests:S.requests, chats:S.chats, netSeeded:S.netSeeded,
     themePresets:S.themePresets, theme:S.theme, bg:S.bg, bgfx:S.bgfx, uiAnim:S.uiAnim, sound:S.sound,
-    font:S.font, keepOpen:S.keepOpen
+    font:S.font, keepOpen:S.keepOpen, menuStyle:S.menuStyle
   };
   if(DESKTOP){ try{ await window.monkey.store.save(blob); return; }catch(e){} }
   try{ await window.storage.set('monkey:state', JSON.stringify(blob)); }
@@ -910,7 +912,9 @@ function openModal(html, opts={}){
   return scrim;
 }
 function closeModal(){ if(modalKey==='version-change'&&versionChange?.busy)return;$('#modal').innerHTML=''; modalKey=null;
-  if(modalCleanup){ modalCleanup(); modalCleanup=null; } }
+  if(modalCleanup){ modalCleanup(); modalCleanup=null; }
+  if(S.pendingUpdate){const key=(S.pendingUpdate.version||'')+':'+(S.pendingUpdate.state==='ready'?'ready':'available');if(S.updateShown!==key)queueMicrotask(()=>{if(!modalKey){S.updateShown=key;updateModal(S.pendingUpdate);}});}
+}
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){ if($('#modal').firstChild) closeModal(); else if(S.pickerOpen){ S.pickerOpen=false; render(); } }
 });
@@ -1073,13 +1077,13 @@ function spinDraw(){
   if(!cv) return;
   if(!SPIN.tex){                       // texture still loading: plate only
     cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
-    drawNametag(cv,{yaw:0,pitch:0,zoom:12,centreY:16});
+    drawNametag(cv,{yaw:0,pitch:0,zoom:12*(cv.width/460),centreY:16});
     return;
   }
   const t=SPIN.t;
   const sw=Math.sin(t*1.5)*0.085;          // slow, shallow limb sway
   const opts={ kind:'skin', slim:(S.mySkin&&S.mySkin.slim)||false,
-    yaw:SPIN.yaw, pitch:0, zoom:SPIN.zoom, centreY:18,
+    yaw:SPIN.yaw, pitch:0, zoom:SPIN.zoom*(cv.width/460), centreY:18,
     bob: Math.sin(t*3)*0.13,
     limb:{armR:sw, armL:-sw, legR:-sw*0.7, legL:sw*0.7} };
   let q=MODEL.build(SPIN.tex,opts,cv.width,cv.height);
@@ -1097,7 +1101,7 @@ function drawNametag(cv, opts){
   const name = S.account ? S.account.name : 'Not signed in';
   const c = cv.getContext('2d');
   const pt = MODEL.project([0, 35, 0], opts, cv.width, cv.height);
-  const size = Math.max(20, Math.round(opts.zoom*2.6));
+  const size = Math.max(12, Math.round(opts.zoom*2.6));
   c.save();
   c.font = `${size}px Silkscreen, ui-monospace, monospace`;
   c.textBaseline = 'top';
@@ -1137,10 +1141,11 @@ function spinAttach(){
   if(!SPIN.raf){
     let prev=performance.now();
     const tick=(now)=>{
+      if(!document.getElementById('spin')){SPIN.raf=null;return;}
       const dt=Math.min(.05,(now-prev)/1000); prev=now;
       if(!document.hidden&&S.uiAnim&&!matchMedia('(prefers-reduced-motion: reduce)').matches)SPIN.t+=dt;
       if(SPIN.idle && !SPIN.drag) SPIN.yaw=-.35+Math.sin(SPIN.t*.35)*.12;
-      if(!document.hidden && document.getElementById('spin') && now-(SPIN.lastPaint||0)>33){SPIN.lastPaint=now;spinDraw();}
+      if(!document.hidden && S.uiAnim!==false && !matchMedia('(prefers-reduced-motion: reduce)').matches && now-(SPIN.lastPaint||0)>66){SPIN.lastPaint=now;spinDraw();}
       SPIN.raf=requestAnimationFrame(tick);
     };
     SPIN.raf=requestAnimationFrame(tick);
@@ -1318,7 +1323,7 @@ function bgFrame(dt){
     BG.kind=effect; BG.w=w; BG.h=h;
     BG.state = fx.init ? fx.init(w,h) : {};
   }
-  const accent=getComputedStyle(document.documentElement).getPropertyValue('--leaf').trim()||'#7CC24A';
+  const accent=(S.theme||PRESETS.jungle).accent;
   const [r,g,b]=hex2rgb(accent);
   const A=a=>`rgba(${r},${g},${b},${Math.max(0,Math.min(1,a))})`;
   fx.draw(c,w,h,dt*cfg.speed,A,BG.state);
@@ -1328,7 +1333,9 @@ function bgAttach(){
   const cv=document.getElementById('bgfx'); if(!cv) return;
   applyBackgroundNow();
   const fit=()=>{ const p=cv.parentElement; if(!p) return;
-    cv.width=Math.max(320,p.clientWidth); cv.height=Math.max(200,p.clientHeight); };
+    const scale=Math.min(1,960/Math.max(1,p.clientWidth),640/Math.max(1,p.clientHeight));
+    const w=Math.max(320,Math.round(p.clientWidth*scale)),h=Math.max(200,Math.round(p.clientHeight*scale));
+    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;BG.dirty=true;}BG.layoutW=p.clientWidth;BG.layoutH=p.clientHeight; };
   fit();
   if(!BG.raf){
     let prev=performance.now();
@@ -1336,8 +1343,9 @@ function bgAttach(){
       const dt=Math.min(.05,(now-prev)/1000); prev=now;
       const c=document.getElementById('bgfx');
       if(c){
-        if(c.parentElement && (c.width!==Math.max(320,c.parentElement.clientWidth)||c.height!==Math.max(200,c.parentElement.clientHeight))) fit();
-        if(!document.hidden&&now-(BG.lastPaint||0)>33){
+        if(c.parentElement && (BG.layoutW!==c.parentElement.clientWidth||BG.layoutH!==c.parentElement.clientHeight)) fit();
+        const moving=bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if(!document.hidden&&(BG.dirty||moving)&&now-(BG.lastPaint||0)>66){BG.dirty=false;
           const elapsed=Math.min(.1,(now-(BG.lastPaint||now))/1000);BG.lastPaint=now;
           bgFrame(bgCfg().animate&&S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches?elapsed:0);
         }
@@ -1352,13 +1360,13 @@ function bgAttach(){
    Chrome
    ============================================================ */
 const TABS = [['play','Play'],['profiles','Profiles'],['mods','Mods'],
-              ['skins','Skins'],['friends','Friends']];
+              ['skins','Skins'],['screenshots','Screenshots'],['friends','Friends']];
 let chromeTab=null, chromeSig='';
 function renderChrome(){
   if(chromeTab!==S.tab){
     $('#nav').innerHTML = TABS.map(([k,t])=>`
       <button class="plaque ${S.tab===k?'on':'stone'}" data-tab="${k}" aria-current="${S.tab===k}">
-        ${svg(k,24)}<span class="t">${t}</span></button>`).join('');
+        ${svg(k==='screenshots'?'image':k,24)}<span class="t">${t}</span></button>`).join('');
     chromeTab=S.tab;
   }
   if(!$('.tools').firstElementChild){
@@ -1393,14 +1401,14 @@ function pagePlay(){
   const p = sel(), L = S.launching, acct = S.account;
   /* Always the canvas on desktop: the texture arrives a moment later, and the
      nameplate should be there from the first frame either way. */
-  const stage = `<canvas id="spin" width="460" height="560" style="cursor:grab" aria-label="Player preview; drag to rotate, double-click to reset"></canvas>`;
+  const stage = `<canvas id="spin" width="276" height="336" style="cursor:grab" aria-label="Player preview; drag to rotate, double-click to reset"></canvas>`;
 
   return `<div class="play">
     <div class="hero">
       <div class="stage">
         <div class="skinbox">${stage}</div>
-        ${S.running
-          ? `<button class="playbtn stop" data-act="kill"><img class="mark" src="${LOGO_SRC}" alt="">
+        ${S.instances.some(i=>i.profileId===p?.id)
+          ? `<button class="playbtn stop" data-act="kill" data-id="${p?.id||''}"><img class="mark" src="${LOGO_SRC}" alt="">
               <span class="label">MINECRAFT IS RUNNING</span>
               <span class="chev">${svg('x',22)}</span></button>`
           : `<button class="playbtn" data-act="launch" ${L?'disabled':''}><img class="mark" src="${LOGO_SRC}" alt="">
@@ -1430,7 +1438,7 @@ function pagePlay(){
 
     <div class="cards">
       <div class="card2 stone">
-        <h4>Monkey Client updates <span class="badge">0.7.0</span></h4>
+        <h4>Monkey Client updates <span class="badge">0.8.0</span></h4>
         <p>A familiar vanilla interface, saved mod profiles, new backgrounds,
            and your settings wherever you play.</p>
         <time>Latest release</time>
@@ -1491,7 +1499,7 @@ function adoptWornLook(r){
 const LAUNCH_STEPS = ['Checking Java runtime','Fetching version manifest','Verifying game libraries',
   'Downloading assets','Resolving mod loader','Building classpath'];
 
-async function launch(){
+async function launch(confirmAdditional=false){
   const p = sel();
   if(!p){ S.tab='profiles'; render(); toast('Create a profile first, then launch','info'); return; }
   S.pickerOpen=false;
@@ -1500,9 +1508,10 @@ async function launch(){
     S.launching={pct:0, step:'Starting up'}; render();
     const payload = plain(p);
     if(S.keepOpen) payload.settings.closeOnLaunch = false;
-    const r = await window.monkey.game.launch(payload);
+    const r = await window.monkey.game.launch(payload,confirmAdditional);
     if(!r.ok){
       S.launching=null; render();
+      if(r.confirmAdditional){additionalInstanceModal(p,r.instances);return;}
       openModal('<div class="modal" style="max-width:480px"><div class="mh">'+svg('x',18)
         +'<h3>Minecraft did not start</h3><button class="btn ghost" data-act="close">'+svg('x',16)
         +'</button></div><div class="mb"><div class="note warn">'+svg('info',16)
@@ -2070,20 +2079,23 @@ function hydrateSkins(){
     cv.addEventListener('pointerenter',()=>item.hover=true);
     cv.addEventListener('pointerleave',()=>item.hover=false);
     if(!item.tex) MODEL.texture(cv.dataset.src,item.kind,item.slim)
-      .then(t => { CARDS.tex.set(cv.dataset.src, t); item.tex = t; })
+      .then(t => { CARDS.tex.set(cv.dataset.src, t); while(CARDS.tex.size>48)CARDS.tex.delete(CARDS.tex.keys().next().value); item.tex = t; })
       .catch(()=>{});
   });
   if(!CARDS.raf) CARDS.raf = requestAnimationFrame(cardLoop);
 }
 function cardLoop(now){
+  if(S.tab!=='skins'){CARDS.raf=null;CARDS.items=[];CARDS.io?.disconnect();return;}
   CARDS.raf = requestAnimationFrame(cardLoop);
   if(S.tab!=='skins' || document.hidden) return;
-  if(now - CARDS.last < 40) return;                 // ~25fps is plenty here
+  if(now - CARDS.last < 80) return;                 // ~25fps is plenty here
   const dt = Math.min(.1, (now - CARDS.last)/1000);
   CARDS.last = now;
   for(const it of CARDS.items){
     if(!it.tex || !it.cv.isConnected || it.visible===false) continue;
     if(S.uiAnim&&!matchMedia('(prefers-reduced-motion: reduce)').matches)it.yaw += dt*0.5;
+    const moving=S.uiAnim!==false&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!moving&&it.painted&&it.lastHover===it.hover)continue;it.painted=true;it.lastHover=it.hover;
     const opts = it.kind==='cape'
       ? { kind:'cape', yaw:it.yaw, pitch:-0.05, zoom:9,  centreY:16 }
       : { kind:'skin', slim:it.slim, yaw:it.yaw, pitch:-0.03, zoom:7, centreY:16 };
@@ -2321,7 +2333,7 @@ function bgPrevAttach(){
 /* Update the Play stage in place so a background change is visible behind the
    settings dialog straight away, with no tab switch needed. */
 function applyBackgroundNow(){
-  const cfg=bgCfg();
+  const cfg=bgCfg();const signature=JSON.stringify([cfg,S.theme?.accent,S.bg?.name]);if(BG.signature!==signature){BG.signature=signature;BG.dirty=true;}
   const hero=document.querySelector('.workspace-background');
   if(!hero) return;
   let layer=hero.querySelector('.bgimg');
@@ -2409,6 +2421,7 @@ function launcherSettings(){
       <div id="fxcontrols">${fxControlsHtml()}</div>
 
       <div class="h5">Interface</div>
+      <div class="field"><label for="menu-style">Menu style</label><select id="menu-style" data-act="menu-style"><option value="monkey" ${(S.menuStyle||'monkey')==='monkey'?'selected':''}>Monkey</option><option value="vanilla" ${S.menuStyle==='vanilla'?'selected':''}>Vanilla</option></select></div>
       <div class="field"><label for="fontsel">Font</label>
         <select id="fontsel" data-act="ui-font">
           ${FONTS.map(([k,label])=>`<option value="${k}" ${(S.font?.key||'pixel')===k?'selected':''}>${label}</option>`).join('')}
@@ -2451,7 +2464,7 @@ async function pollInstances(){
   const list = await window.monkey.game.instances();
   const changed = JSON.stringify(list)!==JSON.stringify(S.instances);
   S.instances = list;
-  if(changed) renderChrome();
+  S.running=list.length>0;if(changed){renderChrome();if(S.tab==='play')render();}
   const box=document.querySelector('#modal .prow .meta span:nth-child(2)');
   if(box && list[0]) box.textContent=`open for ${since(list[0].startedAt)}`;
 }
@@ -2466,7 +2479,7 @@ function crashModal(c){
     : /OutOfMemoryError/.test(log)
       ? 'The game ran out of memory. Raise the memory slider in profile settings.'
     : /Mixin|fabric/i.test(log)
-      ? 'A Fabric mod failed to load. Try removing recently added mods.'
+      ? 'A mod could not load. The detailed error below identifies the affected mod or loader.'
     : null;
   openModal(`<div class="modal wide" style="height:auto;max-width:820px">
     <div class="mh">${svg('x',18)}<h3>Minecraft closed unexpectedly</h3>
@@ -2575,8 +2588,8 @@ function instanceRows(){
       <div class="meta"><span class="tag leaf">Running</span>
         <span>open for ${fmtSince(i.startedAt)}</span>
         <span>·</span><span class="num">PID ${i.pid}</span></div></div>
-    <button class="btn" data-act="view-log">${svg('folder',14)}Log</button>
-    <button class="btn dang" data-act="kill">${svg('power',14)}Close</button>
+    <button class="btn" data-act="view-log" data-id="${esc(i.profileId)}">${svg('folder',14)}Log</button>
+    <button class="btn dang" data-act="kill" data-id="${esc(i.profileId)}">${svg('power',14)}Close</button>
   </div>`).join('');
 }
 function instancesModal(){
@@ -2604,7 +2617,7 @@ function instancesModal(){
 let renderedTab=null, lastHtml='';
 function render(){
   renderChrome();
-  const map={play:pagePlay, profiles:pageProfiles, mods:pageMods, skins:pageSkins, friends:pageFriends};
+  const map={play:pagePlay, profiles:pageProfiles, mods:pageMods, skins:pageSkins, friends:pageFriends, screenshots:pageScreenshots};
   const html = (map[S.tab]||pagePlay)();
   const changingTab = renderedTab!==S.tab;
   if(changingTab){
@@ -2631,6 +2644,7 @@ function go(tab){
   /* The Mods tab is for discovering new mods. A profile's own list is reached
      through the Mods button on its row in Profiles. */
   if(tab==='play' && bgCfg().effect==='random') rollBackground();
+  if(tab==='screenshots')loadScreenshots(0);
   if(tab==='mods'){
     S.modScope='browse';
     if(!S.modResults.length && !S.modLoading) fetchGameVersions().then(searchMods);
@@ -2709,7 +2723,7 @@ document.addEventListener('click', async e => {
     case 'toggle-picker': S.pickerOpen=!S.pickerOpen; render(); break;
     case 'pick-profile': S.selId=id; S.pickerOpen=false; save(); render(); break;
     case 'launch': launch(); break;
-    case 'kill': if(DESKTOP){ await window.monkey.game.kill(); toast('Closing Minecraft','info'); } break;
+    case 'kill': if(DESKTOP){ await window.monkey.game.kill(id||S.selId); toast('Closing Minecraft','info'); } break;
     case 'quick-settings': {
       const p=sel();
       if(!p){ toast('No profile selected','info'); go('profiles'); break; }
@@ -2756,11 +2770,13 @@ document.addEventListener('click', async e => {
     case 'version-check': await checkVersionChange();break;
     case 'version-apply': await applyVersionChange();break;
     case 'version-all': if(versionChange?.plan){for(const row of versionChange.plan.incompatible)versionChange.choices[row.key]=t.dataset.choice;versionModal(versionChange.id);}break;
-    case 's-delete': {
-      const p=S.profiles.find(x=>x.id===setId);
-      S.profiles=S.profiles.filter(x=>x.id!==setId);
-      if(S.selId===setId) S.selId=S.profiles[0]?S.profiles[0].id:null;
-      save(); closeModal(); render(); toast(`Deleted ${p.name}`); break; }
+    case 's-delete': deleteProfileModal(setId); break;
+    case 'delete-profile-confirm': await removeProfile(id); break;
+    case 'launch-additional': closeModal();await launch(true);break;
+    case 'shots-refresh': await loadScreenshots(0);break;
+    case 'shots-page': await loadScreenshots(Number(t.dataset.offset)||0);break;
+    case 'shot-open': if(DESKTOP){const result=await window.monkey.screenshots.open(id,t.dataset.reveal==='true');if(!result.ok)toast(result.message,'err');}break;
+
 
     /* mods */
     case 'modscope':
@@ -2855,7 +2871,7 @@ document.addEventListener('click', async e => {
     case 'del-cape': S.capes=S.capes.filter(c=>c.id!==id);if(S.activeCape===id)S.activeCape=null;save();spinCape();render();toast('Cape removed');break;
 
     /* friends */
-    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(); break;
+    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(id||S.crash?.profileId); break;
     case 'instances': instancesModal(); break;
     case 'copy-log': {
       const log=(S.crash&&S.crash.log||[]).join('\n');
@@ -2863,7 +2879,7 @@ document.addEventListener('click', async e => {
       catch(e){ toast('Could not copy','err'); }
       break; }
     case 'save-log':
-      if(DESKTOP){ const f=await window.monkey.game.saveLog(); toast('Saved to '+f); }
+      if(DESKTOP){ const f=await window.monkey.game.saveLog(S.crash?.profileId); toast('Saved to '+f); }
       break;
     case 'go-requests':
       if(!S.account){ toast('Sign in to see friend requests','err'); signInModal(); break; }
@@ -2973,7 +2989,7 @@ document.addEventListener('click', async e => {
       if(r.ok){ await navigator.clipboard.writeText(r.text); toast('Log copied to clipboard'); }
       else toast(r.message,'err');
       break; }
-    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(); break;
+    case 'view-log': if(DESKTOP) await window.monkey.game.saveLog(id||S.crash?.profileId); break;
     case 'instances': instancesModal(); break;
     case 'kill-instance':
       if(DESKTOP) await window.monkey.game.kill(t.dataset.k);
@@ -2989,7 +3005,7 @@ document.addEventListener('click', async e => {
   }
 });
 
-document.addEventListener('change', e => {
+document.addEventListener('change', async e => {
   const t=e.target.closest('[data-act]'); if(!t) return;
   const p=S.profiles.find(x=>x.id===setId);
   switch(t.dataset.act){
@@ -2997,6 +3013,8 @@ document.addEventListener('change', e => {
     case 'fx-animate': S.bgfx={...bgCfg(), animate:t.checked}; save(); break;
     case 'ui-sound': S.sound=t.checked; save(); if(t.checked) sfx('ok'); break;
     case 'keep-open': S.keepOpen=t.checked; save(); break;
+    case 'menu-style': S.menuStyle=t.value;applyTheme();save();break;
+    case 'shots-profile': SHOTS.profileId=t.value;await loadScreenshots(0);break;
     case 'ui-font': S.font={key:t.value}; applyFont(); save(); break;
     case 'ui-animate':
       S.uiAnim=t.checked;
@@ -3351,8 +3369,57 @@ window.addEventListener('resize', ()=>{
   },80);
 });
 
+const SHOTS={profileId:'',offset:0,items:[],total:0,hasMore:false,loading:false,error:null,revision:0};
+async function loadScreenshots(offset=0){
+ const revision=++SHOTS.revision;SHOTS.loading=true;SHOTS.error=null;SHOTS.offset=offset;
+ if(S.tab==='screenshots')render();
+ try{
+  const result=DESKTOP?await window.monkey.screenshots.list({profileId:SHOTS.profileId||null,offset,limit:36}):{ok:true,data:{items:[],total:0,hasMore:false}};
+  if(revision!==SHOTS.revision)return;if(!result.ok)throw Error(result.message);Object.assign(SHOTS,result.data);
+ }catch(error){if(revision===SHOTS.revision)SHOTS.error=error.message;}
+ finally{if(revision===SHOTS.revision){SHOTS.loading=false;if(S.tab==='screenshots')render();}}
+}
+function pageScreenshots(){
+ return `<div class="page screenshots-page"><div class="shots-heading"><div><h1>Screenshots</h1><p class="muted">Your in-game captures, across all profiles.</p></div><button class="btn" data-act="shots-refresh" ${SHOTS.loading?'disabled':''}>${svg('refresh',16)}Refresh</button></div>
+ <div class="shots-controls"><select data-act="shots-profile" aria-label="Filter screenshots by profile"><option value="">All profiles</option>${S.profiles.map(p=>`<option value="${esc(p.id)}" ${p.id===SHOTS.profileId?'selected':''}>${esc(p.name)}</option>`).join('')}</select><span>${SHOTS.total} screenshot${SHOTS.total===1?'':'s'}</span></div>
+ ${SHOTS.error?`<div class="note warn">${esc(SHOTS.error)}</div>`:''}
+ ${SHOTS.loading?'<p class="muted" role="status">Loading screenshots…</p>':''}
+ ${!SHOTS.loading&&!SHOTS.items.length?'<div class="empty"><h3>No screenshots yet</h3><p>Press F2 in Minecraft to save a screenshot. Monkey Client captures at 3840 × 2160 by default.</p></div>':''}
+ <div class="shots-grid">${SHOTS.items.map(photo=>`<article class="shot-card"><button class="shot-image" data-act="shot-open" data-id="${photo.id}" aria-label="Open ${esc(photo.name)}">${photo.thumbnail?`<img src="${photo.thumbnail}" alt="${esc(photo.name)}" loading="lazy" decoding="async">`:'<span>Preview unavailable</span>'}</button><div class="shot-meta"><b title="${esc(photo.name)}">${esc(photo.name)}</b><small>${esc(photo.profile)} · ${new Date(photo.created).toLocaleDateString()}</small><div class="row"><button class="btn" data-act="shot-open" data-id="${photo.id}">Open</button><button class="btn" data-act="shot-open" data-id="${photo.id}" data-reveal="true">Show in folder</button></div></div></article>`).join('')}</div>
+ <div class="shots-pagination"><button class="btn" data-act="shots-page" data-offset="${Math.max(0,SHOTS.offset-36)}" ${SHOTS.offset===0||SHOTS.loading?'disabled':''}>Previous</button><span>${SHOTS.total?`${SHOTS.offset+1}–${Math.min(SHOTS.offset+36,SHOTS.total)} of ${SHOTS.total}`:'0 screenshots'}</span><button class="btn" data-act="shots-page" data-offset="${SHOTS.offset+36}" ${!SHOTS.hasMore||SHOTS.loading?'disabled':''}>Next</button></div></div>`;
+}
+function additionalInstanceModal(profile,instances){
+ openModal(`<div class="modal" style="max-width:560px"><div class="mh"><h3>Launch another Minecraft instance?</h3></div><div class="mb"><p>${instances.length} instance${instances.length===1?' is':'s are'} already open. Start <b>${esc(profile.name)}</b> alongside ${instances.length===1?'it':'them'}?</p><p class="muted">Each game uses its own memory allocation. The current game will stay open.</p></div><div class="mf"><button class="btn" data-act="close">Cancel</button><button class="btn pri" data-act="launch-additional">Yes, launch ${esc(profile.name)}</button></div></div>`);
+}
+function deleteProfileModal(id){
+ const p=S.profiles.find(p=>p.id===id);if(!p)return;
+ openModal(`<div class="modal" style="max-width:560px"><div class="mh"><h3>Delete ${esc(p.name)}?</h3></div><div class="mb"><p>This removes this profile and its instance folder, including its worlds, mods, settings, and screenshots.</p>${p.settings?.gameDir?'<p class="muted">Files in your custom game directory will be preserved.</p>':''}</div><div class="mf"><button class="btn" data-act="close">Cancel</button><button class="btn dang" data-act="delete-profile-confirm" data-id="${esc(id)}">Delete profile and files</button></div></div>`);
+}
+async function removeProfile(id){
+ try{
+  const p=S.profiles.find(p=>p.id===id);if(!p)return;
+  if(DESKTOP){await save();const result=await window.monkey.profiles.remove(id);if(!result.ok)throw Error(result.message);S.profiles=result.data.profiles;S.selId=result.data.selId;if(result.data.cleanupWarning)toast(result.data.cleanupWarning,'err');}
+  else{S.profiles=S.profiles.filter(p=>p.id!==id);if(S.selId===id)S.selId=S.profiles[0]?.id||null;await save();}
+  closeModal();render();toast('Deleted '+p.name);
+ }catch(error){toast(error.message,'err');}
+}
+function updateModal(update){
+ const ready=update.state==='ready'||S.updateReady;
+ const version=update.version||S.pendingUpdate?.version||'';
+ if(modalKey!=='update'&&document.querySelector('#modal .modal'))return;
+ openModal(`<div class="modal update-modal"><div class="mh">${svg('dl',22)}<h3>${ready?'Your update is ready':'A new update is available'}</h3><button class="btn ghost" data-act="close" aria-label="Dismiss">${svg('x',16)}</button></div><div class="mb"><div class="update-version">Monkey Client ${esc(version)}</div><p>${ready?'Close the launcher to install the update automatically. You do not need to download setup again.':'The update is downloading automatically. Keep the launcher open until the download finishes.'}</p>${ready?'<p class="muted">Any open Minecraft games will stay running.</p>':`<div class="update-progress"><i style="width:${Math.max(3,Math.min(100,update.percent||3))}%"></i></div><p class="muted">${update.percent?Math.round(update.percent)+'% downloaded':'Preparing download…'}</p>`}</div><div class="mf"><button class="btn" data-act="close">${ready?'Later':'Keep using launcher'}</button>${ready?'<button class="btn pri" data-act="upd-install">Close and update</button>':''}</div></div>`,{key:'update'});
+}
+async function finishBoot(){
+ await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]);
+ const remaining=Math.max(0,700-performance.now());if(remaining)await new Promise(r=>setTimeout(r,remaining));
+ document.body.classList.remove('booting');document.body.classList.add('boot-ready');
+ setTimeout(()=>document.getElementById('boot-screen')?.remove(),450);
+}
+window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)loadScreenshots(SHOTS.offset);});
+
 /* ---------- boot ---------- */
 (async function(){
+  try{
   await load();
   if(DESKTOP)window.monkey.profiles.onProgress(progress=>{const text=document.getElementById('version-progress');if(text)text.textContent=progress.detail||'Updating mods…';});
   if(!S.theme) S.theme={...PRESETS.jungle};
@@ -3373,37 +3440,41 @@ window.addEventListener('resize', ()=>{
       else if(message) toast('MonkeyNet: '+message,'info');
     });
     window.monkey.net.onEvent(handleNetEvent);
-    window.monkey.update.onStatus(u=>{
-      const msg = {
-        available:`Update ${u.version} found — downloading…`,
-        downloading:`Downloading update — ${u.percent}%`,
-        ready:`Update ${u.version} is ready. Restart to apply it.`,
-        current:'Monkey Client is up to date.',
-        error:`Update check failed: ${u.message}`
-      }[u.state];
-      S.updateMsg=msg; S.updateReady = u.state==='ready';
-      if(u.state==='ready') toast(msg,'info');
-      const box=document.getElementById('updbox');
-      if(box) box.lastElementChild.textContent=msg;
-    });
+    const handleUpdate=u=>{
+      if(!u)return;
+      const msg={available:`Update ${u.version} found — downloading…`,downloading:`Downloading update — ${u.percent}%`,ready:`Update ${u.version} is ready. Close the launcher to install it.`,current:'Monkey Client is up to date.',error:`Update check failed: ${u.message}`}[u.state];
+      S.updateMsg=msg;
+      if(u.state==='ready')S.updateReady=true;
+      if(['available','ready','downloading'].includes(u.state)){
+        S.pendingUpdate={...S.pendingUpdate,...u};
+        const notificationKey=(S.pendingUpdate.version||'')+':'+(u.state==='ready'?'ready':'available');
+        if(modalKey==='update'||(!$('#modal').firstChild&&S.updateShown!==notificationKey)){
+          S.updateShown=notificationKey;updateModal(S.pendingUpdate);
+        }
+      }
+      const box=document.getElementById('updbox');if(box)box.lastElementChild.textContent=msg;
+    };
+    window.monkey.update.onStatus(handleUpdate);
+    handleUpdate(await window.monkey.update.status());
+    await pollInstances();
     window.monkey.game.onProgress(p=>{
       const first = !S.launching;
-      S.launching={pct:p.pct, step:p.detail};
+      S.launching={pct:p.pct, step:p.detail,profileId:p.profileId};
       if(first){ render(); return; }
       const bar=document.querySelector('.progress .bar i'), txt=document.querySelector('.progress p');
       if(bar) bar.style.width=p.pct+'%';
       if(txt) txt.textContent=p.detail;
       else render();
     });
-    window.monkey.game.onCrash(c=>{ S.crash=c; S.launching=null; S.running=false; render(); crashModal(c); });
+    window.monkey.game.onCrash(c=>{ S.crash=c;if(S.launching?.profileId===c.profileId)S.launching=null;pollInstances();render();crashModal(c); });
     setInterval(pollInstances, 5000);
     window.monkey.game.onEvent(ev=>{
-      if(ev.type==='running'){ S.launching=null; S.running=true; render(); toast('Minecraft is running'); }
+      if(ev.type==='running'){if(S.launching?.profileId===ev.profileId)S.launching=null;pollInstances();render();toast((ev.profile||'Minecraft')+' is running');}
       if(ev.type==='exit'){
-        S.launching=null; S.running=false; pollInstances(); render();
+        if(S.launching?.profileId===ev.profileId)S.launching=null;pollInstances();render();
         if(ev.code===0) toast('Minecraft closed');
       }
-      if(ev.type==='error'){ S.launching=null; S.running=false; render(); toast(ev.message,'err'); }
+      if(ev.type==='error'){if(S.launching?.profileId===ev.profileId)S.launching=null;pollInstances();render();toast(ev.message,'err');}
     });
     window.monkey.auth.onAccounts(list=>{ S.accounts=list; renderChrome(); });
     const acc=await window.monkey.auth.account();
@@ -3411,5 +3482,7 @@ window.addEventListener('resize', ()=>{
     S.accounts = await window.monkey.auth.accounts();
   }
   render();
+  }catch(error){console.error(error);render();toast("Some launcher data could not load. "+error.message,"err");}
+  finally{await finishBoot();}
 })();
 </script>

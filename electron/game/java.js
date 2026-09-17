@@ -6,13 +6,17 @@ const { spawn } = require('child_process');
 const io = require('./io');
 const { shared, fsp } = io;
 
-const EXE = process.platform === 'win32' ? 'javaw.exe' : 'java';
+// javaw can discard the very startup errors we need for crash reports.
+const EXE = process.platform === 'win32' ? 'java.exe' : 'java';
 const ADOPTIUM = 'https://api.adoptium.net/v3/binary/latest';
 
 function probe(bin) {
   return new Promise(resolve => {
-    const p = spawn(bin, ['-version']);
+    const p = spawn(bin, ['-version'], { windowsHide: true });
     let out = '';
+    const timer = setTimeout(() => { p.kill(); resolve(null); }, 5000);
+    p.once('close', () => clearTimeout(timer));
+    p.once('error', () => clearTimeout(timer));
     p.on('error', () => resolve(null));
     p.stderr.on('data', d => out += d);          // java -version writes to stderr
     p.stdout.on('data', d => out += d);
@@ -42,7 +46,7 @@ async function candidates() {
 async function find(majorNeeded) {
   for (const bin of await candidates()) {
     const r = await probe(bin);
-    if (r && r.major >= majorNeeded) return r.bin;
+    if (r && r.major === majorNeeded) return r.bin;
   }
   return null;
 }
@@ -68,13 +72,22 @@ async function fetchJre(major, onProgress) {
 }
 
 /* Version JSON tells us which Java it wants; modern versions ask for 21. */
+const pending=new Map();
 async function ensure(version, override, onProgress = () => {}) {
-  if (override) return override;
   const major = (version.javaVersion && version.javaVersion.majorVersion) || 21;
+  if (override) {
+    const consoleBin = override.replace(/javaw\.exe$/i, 'java.exe');
+    const checked = await probe(consoleBin);
+    if (!checked || checked.major !== major) throw Error(`Minecraft ${version.id} needs Java ${major}. Select a Java ${major} executable or turn off the custom Java override.`);
+    return consoleBin;
+  }
+  if(pending.has(major))return pending.get(major);
+  const task=(async()=>{
   const found = await find(major);
   if (found) return found;
   onProgress({ stage: 'java', pct: 6, detail: `Java ${major} not found on this PC` });
   return fetchJre(major, onProgress);
+  })();pending.set(major,task);try{return await task;}finally{pending.delete(major);}
 }
 
 module.exports = { ensure, find, probe };

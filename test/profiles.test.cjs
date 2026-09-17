@@ -48,3 +48,20 @@ test('migration preserves pack metadata and non-JAR files but replaces managed m
  const p=await f.service.plan('source','26.3','fabric');await f.service.apply(p.token,{'missing.jar':'delete','local.jar':'delete'});
  assert.equal(await fs.readFile(path.join(f.mods,'readme.txt'),'utf8'),'keep');assert.ok(f.data.profiles[0].mods.some(m=>m.id==='pack'));await assert.rejects(fs.stat(path.join(f.mods,'monkeyclient-version.json')));
 });
+
+test('deleting a profile removes the complete managed instance and updates selection',async t=>{
+ const f=await fixture(t),data=await f.store.loadData();data.selId='source';await f.store.saveData(data);
+ await fs.mkdir(path.join(f.root,'saves','world'),{recursive:true});await fs.writeFile(path.join(f.root,'saves','world','level.dat'),'world');
+ const result=await f.service.remove('source');assert.equal(result.profiles.length,0);assert.equal(f.data.profiles.length,0);await assert.rejects(fs.stat(f.root),{code:'ENOENT'});
+});
+test('deleting a custom-directory profile preserves that external game directory',async t=>{
+ const f=await fixture(t),custom=path.join(f.temp,'custom'),data=await f.store.loadData();await fs.mkdir(custom);await fs.writeFile(path.join(custom,'keep.txt'),'keep');data.profiles[0].settings.gameDir=custom;await f.store.saveData(data);
+ const result=await f.service.remove('source');assert.equal(result.customDirectoryPreserved,true);assert.equal(await fs.readFile(path.join(custom,'keep.txt'),'utf8'),'keep');await assert.rejects(fs.stat(f.root));
+});
+test('deletion refuses active and shared instance folders',async t=>{
+ const f=await fixture(t);f.control.running=true;await assert.rejects(f.service.remove('source'),/Close|running/i);f.control.running=false;
+ const data=await f.store.loadData();data.profiles.push({id:'other',settings:{gameDir:path.join(f.root,'nested')}});await f.store.saveData(data);await assert.rejects(f.service.remove('source'),/another|shared/i);assert.ok(await fs.stat(f.root));
+});
+test('failed profile save restores the instance directory after staged deletion',async t=>{
+ const f=await fixture(t);f.control.saveFails=true;await assert.rejects(f.service.remove('source'),/disk full/);assert.equal(await fs.readFile(path.join(f.mods,'old.jar'),'utf8'),'old');assert.equal(f.data.profiles.length,1);
+});

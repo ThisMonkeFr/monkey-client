@@ -1,0 +1,59 @@
+name: Runtime verification
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['26.3', '26.2', '26.1.2', '26.1.1', '26.1', '1.21.11', '1.21.10', '1.21.9']
+        loader: [fabric, forge]
+        exclude:
+          - version: '26.3'
+            loader: forge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ startsWith(matrix.version, '1.') && '21' || '25' }}
+      - run: npm ci --ignore-scripts
+      - run: sudo apt-get update && sudo apt-get install -y xvfb xdotool libgl1-mesa-dri libopenal1 libxrandr2
+      - name: Boot Minecraft and capture a 4K frame
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          ALSOFT_DRIVERS: 'null'
+        run: xvfb-run -a -s '-screen 0 1280x800x24' node tools/smoke-game.cjs '${{ matrix.version }}' '${{ matrix.loader }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-${{ matrix.version }}-${{ matrix.loader }}
+          path: |
+            build/runtime/instances/**/check.log
+            build/runtime/instances/**/logs/latest.log
+            build/runtime/instances/**/crash-reports/*.txt
+            build/runtime/instances/**/screenshots/*.png
+  launcher-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npm install --no-save --package-lock=false @playwright/test@1.55.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tools/smoke-renderer.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launcher-ui
+          path: build/ui-check/*.png

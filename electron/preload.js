@@ -41,11 +41,11 @@ contextBridge.exposeInMainWorld('monkey', {
   },
 
   game: {
-    launch: (profile) => ipcRenderer.invoke('game:launch', profile),
-    kill: () => ipcRenderer.invoke('game:kill'),
+    launch: (profile, confirmAdditional=false) => ipcRenderer.invoke('game:launch', {profile,confirmAdditional}),
+    kill: (profileId) => ipcRenderer.invoke('game:kill', profileId),
     instances: () => ipcRenderer.invoke('game:instances'),
-    log: () => ipcRenderer.invoke('game:log'),
-    saveLog: () => ipcRenderer.invoke('game:save-log'),
+    log: (profileId) => ipcRenderer.invoke('game:log', profileId),
+    saveLog: (profileId) => ipcRenderer.invoke('game:save-log', profileId),
     onProgress: on('game:progress'),
     onEvent: on('game:event'),
     onCrash: on('game:crash')
@@ -59,13 +59,19 @@ contextBridge.exposeInMainWorld('monkey', {
   },
 
   profiles: {
+    remove: (id) => ipcRenderer.invoke('profiles:remove',{id}),
     versions: () => ipcRenderer.invoke('profiles:versions'),
     inherit: (sourceId,profile) => ipcRenderer.invoke('profiles:inherit',{sourceId,profile}),
     planVersion: (id,version,loader) => ipcRenderer.invoke('profiles:plan-version',{id,version,loader}),
     applyVersion: (token,choices) => ipcRenderer.invoke('profiles:apply-version',{token,choices}),
     onProgress: on('profiles:progress')
   },
+  screenshots: {
+    list: (options) => ipcRenderer.invoke('screenshots:list',options),
+    open: (id,reveal=false) => ipcRenderer.invoke('screenshots:open',{id,reveal})
+  },
   update: {
+    status: () => ipcRenderer.invoke('update:status'),
     check: () => ipcRenderer.invoke('update:check'),
     install: () => ipcRenderer.invoke('update:install'),
     version: () => ipcRenderer.invoke('app:version'),

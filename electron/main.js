@@ -64,7 +64,7 @@ app.whenReady().then(async () => {
   createWindow();
   // Try to restore the previous session silently.
   setupUpdates();
-  restoreInstances();
+  instancesReady=restoreInstances();
   const saved = await store.loadSessions();
   if (saved.accounts.length) {
     /* Only the active account is refreshed at start-up; the others refresh
@@ -90,15 +90,18 @@ app.whenReady().then(async () => {
    Auto-update. Only meaningful in a packaged build — in dev there is no
    installer to replace, so we skip it rather than throw on every start.
    ------------------------------------------------------------------ */
+let latestUpdate=null;
+function updateStatus(status){latestUpdate={...latestUpdate,...status};send('update:status',latestUpdate);}
+ipcMain.handle('update:status',()=>latestUpdate);
 function setupUpdates() {
   if (!app.isPackaged) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('update-available', i => send('update:status', { state: 'available', version: i.version }));
-  autoUpdater.on('update-not-available', () => send('update:status', { state: 'current' }));
-  autoUpdater.on('download-progress', p => send('update:status', { state: 'downloading', percent: Math.round(p.percent) }));
-  autoUpdater.on('update-downloaded', i => send('update:status', { state: 'ready', version: i.version }));
-  autoUpdater.on('error', e => send('update:status', { state: 'error', message: String(e.message || e) }));
+  autoUpdater.on('update-available', i => updateStatus({ state: 'available', version: i.version }));
+  autoUpdater.on('update-not-available', () => updateStatus({ state: 'current' }));
+  autoUpdater.on('download-progress', p => updateStatus({ state: 'downloading', percent: Math.round(p.percent) }));
+  autoUpdater.on('update-downloaded', i => updateStatus({ state: 'ready', version: i.version }));
+  autoUpdater.on('error', e => updateStatus({ state: 'error', message: String(e.message || e) }));
   autoUpdater.checkForUpdates().catch(() => {});
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000);
 }
@@ -254,103 +257,82 @@ ipcMain.handle('mc:upload-skin', async (_e, { data, variant }) => {
   } catch (e) { return { ok: false, message: e.message }; }
 });
 
-let running = null;
-let logBuf = [];                      // last lines of Minecraft output
+const running = new Map();
+const recentLogs = new Map();
 const LOG_MAX = 400;
-
-ipcMain.handle('game:launch', async (_e, profile) => {
-  if(profileService.isBusy(profile.id))return {ok:false,message:'This profile is changing versions. Wait for the update to finish.'};
-  if (running) return { ok: false, message: 'Minecraft is already running.' };
-  if (!account()) return { ok: false, message: 'Sign in before launching.' };
-  try {
-    const selectedAccount={...account()};
-    const token = await liveToken(selectedAccount.uuid);
-    logBuf = [];
-    await mods.sync(profile, p => send('game:progress', p));
-    if(profile.loader==='fabric'||profile.loader==='forge') {
+let lastProfileId = null;
+const instanceList = () => [...running.values()].map(r => ({profile:r.profile,profileId:r.profileId,pid:r.pid||null,startedAt:r.startedAt,logPath:r.logPath||null,state:r.state,gameDir:r.gameDir}));
+const INST_FILE = () => path.join(app.getPath('userData'), 'instances.json');
+let instanceSave=Promise.resolve(),instancesReady=Promise.resolve();
+function saveInstances(){
+  const snapshot=JSON.stringify(instanceList().filter(r=>r.pid));
+  instanceSave=instanceSave.catch(()=>{}).then(()=>require('fs/promises').writeFile(INST_FILE(),snapshot)).catch(()=>{});
+  send('game:instances',instanceList());return instanceSave;
+}
+async function restoreInstances(){
+  try{const rows=JSON.parse(await require('fs/promises').readFile(INST_FILE(),'utf8')),data=await store.loadData();
+    for(const prev of rows){if(!prev.profileId){const matches=(data.profiles||[]).filter(p=>p.name===prev.profile);if(matches.length===1)prev.profileId=matches[0].id;}const p=(data.profiles||[]).find(p=>p.id===prev.profileId);if(p&&!prev.gameDir)prev.gameDir=path.resolve(p.settings?.gameDir||require('./game/io').instance(p.id));}
+    for(const prev of rows){if(!prev.profileId||!Number.isInteger(prev.pid))continue;
+      try{process.kill(prev.pid,0);}catch{continue;}
+      running.set(prev.profileId,{...prev,state:'running',external:true,kill:()=>{try{process.kill(prev.pid);}catch{}}});
+    }
+    send('game:instances',instanceList());
+  }catch{}
+}
+function refreshExternalInstances(){for(const [id,record] of running)if(record.external){try{process.kill(record.pid,0);}catch{running.delete(id);}}}
+function rememberLog(id,lines){recentLogs.delete(id);recentLogs.set(id,lines);while(recentLogs.size>8)recentLogs.delete(recentLogs.keys().next().value);}
+ipcMain.handle('game:launch',async(_e,payload)=>{
+  await instancesReady;
+  const {profile,confirmAdditional=false}=payload||{};
+  if(!profile||!/^[a-zA-Z0-9_-]{1,100}$/.test(profile.id))return {ok:false,message:'Choose a saved profile.'};
+  refreshExternalInstances();
+  if(profileService.isBusy(profile.id))return {ok:false,message:'This profile is changing versions. Wait for it to finish.'};
+  if(running.has(profile.id))return {ok:false,message:'This profile is already open. Choose another profile to launch a second instance.'};
+  if(running.size&&!confirmAdditional)return {ok:false,confirmAdditional:true,instances:instanceList()};
+  if(!account())return {ok:false,message:'Sign in before launching.'};
+  const dir=path.resolve(profile.settings?.gameDir||require('./game/io').instance(profile.id));
+  if([...running.values()].some(r=>r.gameDir===dir))return {ok:false,message:'Another instance is using this game folder. Choose a separate folder before launching.'};
+  const record={profile:profile.name,profileId:profile.id,gameDir:dir,startedAt:Date.now(),state:'preparing',logs:[]};
+  running.set(profile.id,record);lastProfileId=profile.id;rememberLog(profile.id,record.logs);
+  const progress=p=>send('game:progress',{...p,profileId:profile.id});
+  try{
+    const selectedAccount={...account()},token=await liveToken(selectedAccount.uuid);
+    await mods.sync(profile,progress);
+    if(['fabric','forge'].includes(profile.loader)){
       const state=await store.loadData();
-      const dir=profile.settings.gameDir||require('./game/io').instance(profile.id);
       await require('./game/cosmetics').sync(dir,state,selectedAccount.uuid,png=>{
-        let image=require('electron').nativeImage.createFromBuffer(png);
-        const size=image.getSize();
+        let image=require('electron').nativeImage.createFromBuffer(png);const size=image.getSize();
         if(size.width===size.height)image=image.crop({x:0,y:0,width:size.width,height:size.height/2});
-        else if(size.width!==size.height*2)throw new Error('Cape must use a 2:1 texture.');
-        if(image.getSize().width>2048)throw new Error('Cape texture is too large (maximum width 2048).');
-        return image.toPNG();
+        else if(size.width!==size.height*2)throw Error('Cape must use a 2:1 texture.');
+        if(image.getSize().width>2048)throw Error('Cape texture is too large (maximum width 2048).');return image.toPNG();
       });
     }
-    const started = Date.now();
-    running = await game.launch(
-      profile,
-      { name: selectedAccount.name, uuid: selectedAccount.uuid, accessToken: token },
-      p => send('game:progress', p),
-      ev => {
-        if (ev.type === 'log') {
-          logBuf.push(ev.line);
-          if (logBuf.length > LOG_MAX) logBuf.shift();
-          return;                       // logs are pulled, not pushed per line
-        }
-        send('game:event', ev);
-        if (ev.type === 'running' && profile.settings.closeOnLaunch && win) win.hide();
-        if (ev.type === 'exit' || ev.type === 'error') {
-          const bad = ev.type === 'error' || (ev.code !== 0 && ev.code !== null);
-          if (bad) send('game:crash', { code: ev.code, log: logBuf.slice(-200) });
-          running = null;
-          saveInstances();
-          if (win) { win.show(); win.focus(); }
-        }
+    const processInfo=await game.launch(profile,{name:selectedAccount.name,uuid:selectedAccount.uuid,accessToken:token},progress,ev=>{
+      if(ev.type==='log'){record.logs.push(ev.line);if(record.logs.length>LOG_MAX)record.logs.shift();return;}
+      if(ev.logPath)record.logPath=ev.logPath;
+      if(ev.type==='running'){record.state='running';saveInstances();if(profile.settings.closeOnLaunch&&win)win.hide();}
+      send('game:event',{...ev,profileId:profile.id,profile:profile.name});
+      if(ev.type==='exit'||ev.type==='error'){
+        running.delete(profile.id);saveInstances();
+        const bad=ev.type==='error'||(ev.code!==0&&ev.code!==null);
+        if(bad){const lines=record.logs.length?record.logs.slice(-200):ev.tail||[ev.message||'Java exited before writing output. Full log: '+record.logPath];send('game:crash',{profileId:profile.id,profile:profile.name,code:ev.code,log:lines,logPath:record.logPath});}
+        if(win){win.show();win.focus();}
       }
-    );
-    running.profile = profile.name;
-    running.profileId = profile.id;
-    running.startedAt = started;
-    saveInstances();
-    return { ok: true };
-  } catch (e) {
-    running = null;
-    return { ok: false, message: e.message };
-  }
+    });
+    if(running.get(profile.id)===record){Object.assign(record,processInfo);saveInstances();}
+    return {ok:true,profileId:profile.id};
+  }catch(error){running.delete(profile.id);saveInstances();return {ok:false,message:error.message};}
 });
-
-const INST_FILE = () => path.join(app.getPath('userData'), 'instances.json');
-const instanceList = () => running
-  ? [{ profile: running.profile, pid: running.pid, startedAt: running.startedAt,
-       logPath: running.logPath || null }]
-  : [];
-
-async function saveInstances() {
-  try { await require('fs/promises').writeFile(INST_FILE(), JSON.stringify(instanceList())); }
-  catch {}
-}
-/* A pid alone proves nothing after a restart, so check the process really is
-   still alive before claiming the game is running. */
-async function restoreInstances() {
-  try {
-    const raw = await require('fs/promises').readFile(INST_FILE(), 'utf8');
-    const [prev] = JSON.parse(raw);
-    if (!prev) return;
-    try { process.kill(prev.pid, 0); } catch { return; }
-    running = {
-      profile: prev.profile, pid: prev.pid, startedAt: prev.startedAt,
-      logPath: prev.logPath, external: true,
-      kill: () => { try { process.kill(prev.pid); } catch {} }
-    };
-    send('game:instances', instanceList());
-  } catch {}
-}
-
-ipcMain.handle('game:instances', () => instanceList());
-ipcMain.handle('game:log', () => logBuf.slice());
-ipcMain.handle('game:save-log', async () => {
-  const p = path.join(app.getPath('downloads'), `monkey-client-log-${Date.now()}.txt`);
-  await require('fs/promises').writeFile(p, logBuf.join('\n'), 'utf8');
-  shell.showItemInFolder(p);
-  return p;
+ipcMain.handle('game:instances',async()=>{await instancesReady;refreshExternalInstances();return instanceList();});
+ipcMain.handle('game:log',(_e,id)=>recentLogs.get(id||lastProfileId)||[]);
+ipcMain.handle('game:save-log',async(_e,id)=>{
+  const key=id||lastProfileId,record=running.get(key),lines=recentLogs.get(key)||[];
+  const target=path.join(app.getPath('downloads'),`monkey-client-log-${Date.now()}.txt`);
+  await require('fs/promises').writeFile(target,lines.length?lines.join('\n'):'No console output. '+(record?.logPath||''),'utf8');shell.showItemInFolder(target);return target;
 });
-
-ipcMain.handle('game:kill', () => {
-  if (running) { running.kill(); running = null; saveInstances(); }
-  return true;
+ipcMain.handle('game:kill',(_e,id)=>{
+  const record=id?running.get(id):running.size===1?[...running.values()][0]:null;
+  if(!record?.kill)return false;record.kill();return true;
 });
 
 const withProfile = (fn) => async (_e, payload) => {
@@ -364,8 +346,12 @@ ipcMain.handle('mods:folder', withProfile(({ profile }) => mods.openFolder(profi
 const profileService=require('./game/profiles').createProfileService({
   io:require('./game/io'),store,
   installManaged:(profile,progress)=>require('./game/clientmod').ensure(profile,progress),
-  isRunning:id=>!!running&&running.profileId===id
+  isRunning:id=>running.has(id)
 });
+ipcMain.handle('profiles:remove',withProfile(({id})=>profileService.remove(id)));
+const screenshots=require('./screenshots').createScreenshotService({store,io:require('./game/io'),nativeImage:require('electron').nativeImage,shell});
+ipcMain.handle('screenshots:list',withProfile(options=>screenshots.list(options)));
+ipcMain.handle('screenshots:open',withProfile(({id,reveal})=>screenshots.open(id,reveal)));
 ipcMain.handle('profiles:versions',()=>require('./game/versions').releases);
 ipcMain.handle('profiles:inherit',withProfile(({sourceId,profile})=>profileService.inherit(sourceId,profile)));
 ipcMain.handle('profiles:plan-version',withProfile(({id,version,loader})=>profileService.plan(id,version,loader)));
