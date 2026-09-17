@@ -1,6 +1,6 @@
 # Monkey Client
 
-A vanilla-styled Minecraft launcher. Electron shell, Modrinth-backed mod browser,
+A Minecraft-styled launcher with a themeable Monkey interface. Electron shell, Modrinth-backed mod browser,
 Microsoft account sign-in, and a friends system.
 
 ## Running it
@@ -90,3 +90,9 @@ See RELEASE-NOTES.md for the mod 0.4.0 bundle, saved themes, detailed background
 The default font is Minecraft. Full-page animated backgrounds follow the current accent on every tab. Profile settings include Change version, which updates installed mods and collects unavailable builds in one Disable/Delete dialog. New profiles inherit the currently selected profile's options, shader configuration, resource packs and shader packs without moving the originals.
 
 The launcher bundles Monkey Client 0.5.0 for eight Fabric and seven Forge combinations. `bundled/monkeyclient.json` pins each artifact to one Minecraft version and loader with a SHA-256 hash. Forge 26.3 is unavailable upstream and is not offered. Run `npm test` for launcher regressions and `npm run dist -- --win nsis --x64 --publish never` to produce the Windows installer. The source archive includes the matching mod JARs.
+
+## Release 0.8.0
+
+Monkey is the default menu style; top and side navigation follow your theme. Screenshots brings every saved profile's captures into one gallery, and the integrated mod captures F2 screenshots at 4K. Multiple profiles can run together after confirmation. Profile deletion removes its managed instance files, and updates use a larger download/install dialog.
+
+Launch fixes cover the exact Java major, native CPU filtering, Fabric library overrides, Forge startup, and full crash logs. The launcher bundles all 15 Monkey Client 0.6.0 builds. Run `npm test` for 51 regression checks. The manually dispatched Runtime verification workflow checks the renderer and launches version-specific clients in a virtual display.

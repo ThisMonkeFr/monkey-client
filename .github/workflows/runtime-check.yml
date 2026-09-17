@@ -38,7 +38,7 @@ jobs:
           distribution: temurin
           java-version: ${{ startsWith(matrix.version, '1.') && '21' || '25' }}
       - run: npm ci --ignore-scripts
-      - run: sudo apt-get update && sudo apt-get install -y xvfb xdotool libgl1-mesa-dri libopenal1 libxrandr2 mesa-vulkan-drivers libvulkan1
+      - run: sudo apt-get update && sudo apt-get install -y xvfb xdotool imagemagick libgl1-mesa-dri libopenal1 libxrandr2 mesa-vulkan-drivers libvulkan1
       - name: Boot Minecraft and capture a 4K frame
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
@@ -53,6 +53,7 @@ jobs:
             build/runtime/instances/**/logs/latest.log
             build/runtime/instances/**/crash-reports/*.txt
             build/runtime/instances/**/screenshots/*.png
+            build/runtime/instances/**/display-*.png
   launcher-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 10
