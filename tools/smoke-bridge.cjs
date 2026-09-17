@@ -17,7 +17,7 @@ app.whenReady().then(async()=>{
  const env=await bridge.session('test',{uuid:me.uuid}),headers={Authorization:'Bearer '+env.MONKEY_UI_TOKEN,'Content-Type':'application/json'};
  const post=async(route,body)=>{const r=await fetch(env.MONKEY_UI_URL+route,{method:'POST',headers,body:JSON.stringify(body)});const data=await r.json();assert.equal(r.status,200,JSON.stringify(data));return data;};
  assert.equal(BrowserWindow.getAllWindows().length,0);assert.equal((await post('/social',{})).groups[0].name,'Building crew');assert.equal((await post('/screenshots/list',{})).items[0].name,'World.png');
- assert.equal((await post('/library/list',{kind:'skin'})).items[0].name,'Orange monkey');const item=(await post('/library/item',{kind:'skin',id:'skin'})).item;assert.equal(item.data,png);
+ assert.equal((await post('/library/list',{kind:'skin'})).items[0].name,'Orange monkey');const item=(await post('/library/item',{kind:'skin',id:'skin'})).item;assert.deepEqual(nativeImage.createFromDataURL(item.data).toBitmap(),nativeImage.createFromDataURL(png).toBitmap());
  const added=await post('/library/save',{kind:'cape',item:{name:'Test cape',data:png}});assert.equal(nativeImage.createFromDataURL(added.item.data).getSize().height,32);
  await post('/library/equip',{kind:'cape',id:added.item.id});assert.equal(state.activeCape,added.item.id);await post('/library/delete',{kind:'cape',id:added.item.id});assert.equal(state.capes.length,0);
  assert.equal(BrowserWindow.getAllWindows().length,0);assert.equal(messages.length,0);console.log('PASS native data API, shared library mutations and no hidden browser windows');
