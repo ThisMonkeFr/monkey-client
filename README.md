@@ -13,10 +13,6 @@ npm start
 `renderer/index.html` also opens directly in a browser. Everything that does not
 need the OS still works there, which makes UI iteration fast.
 
-## Before sign-in works
-
-Follow **AZURE-SETUP.md** and put your client ID in `electron/config.js`.
-
 ## Layout
 
 ```
