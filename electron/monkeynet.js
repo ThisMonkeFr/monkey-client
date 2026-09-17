@@ -68,6 +68,9 @@ const declineRequest= (id) => http(`/friends/requests/${id}/decline`, { method: 
 const removeFriend  = (uuid) => http(`/friends/${uuid}`, { method: 'DELETE' });
 const history       = (uuid) => http(`/messages/${uuid}`);
 
+const groupMembers=id=>http(`/groups/${encodeURIComponent(id)}/members`);
+const shareProfile=(code,profile)=>http('/profiles/share',{method:'POST',body:{code,profile}});
+const importProfile=code=>http('/profiles/share/'+encodeURIComponent(code));
 const groups = () => http('/groups');
 const createGroup = data => http('/groups', {method:'POST',body:data});
 const updateGroup = (id,data) => http(`/groups/${encodeURIComponent(id)}`, {method:'PATCH',body:data});
@@ -87,5 +90,5 @@ function send(uuid, text, attachmentId) {
 module.exports = {
   connect, disconnect, isConnected, friends, requests,
   addFriend, acceptRequest, declineRequest, removeFriend, history, send,
-  groups, createGroup, updateGroup, leaveGroup, groupHistory, uploadAttachment, attachment, sendGroup
+  groupMembers,shareProfile,importProfile,groups, createGroup, updateGroup, leaveGroup, groupHistory, uploadAttachment, attachment, sendGroup
 };

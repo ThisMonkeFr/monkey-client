@@ -3,12 +3,16 @@ const fs=require('node:fs/promises');
 const crypto=require('node:crypto');
 
 function createScreenshotService({store,io,nativeImage,shell}){
- const files=new Map(),thumbnails=new Map();
+ const files=new Map(),thumbnails=new Map(),origins=new Map();
+ const archive=path.join(io.root?io.root():path.dirname(io.instance('__gallery__')),'screenshots');
+ let queue=Promise.resolve();
+ const serial=fn=>{const next=queue.catch(()=>{}).then(fn);queue=next;return next;};
  const idFor=file=>crypto.createHash('sha256').update(file).digest('hex');
- async function list({profileId=null,offset=0,limit=48}={}){
+ async function collect({profileId=null,offset=0,limit=48}={}){
+  await fs.mkdir(archive,{recursive:true});if((await fs.lstat(archive)).isSymbolicLink())throw Error("Screenshot archive cannot be a link");origins.clear();
   const data=await store.loadData(),rows=[],seen=new Set();
   for(const profile of data?.profiles||[]){
-   if(profileId&&profile.id!==profileId)continue;
+
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(profile.id))continue;
    const roots=[{dir:path.resolve(profile.settings?.gameDir||io.instance(profile.id)),name:profile.name}];
    const sessions=path.join(io.instance(profile.id),'sessions');
@@ -21,9 +25,23 @@ function createScreenshotService({store,io,nativeImage,shell}){
    for(const entry of entries){
     if(!entry.isFile()||!entry.name.toLowerCase().endsWith('.png'))continue;
     const file=path.join(dir,entry.name),stat=await fs.stat(file).catch(()=>null);if(!stat)continue;
-    const id=idFor(file);files.set(id,file);rows.push({id,name:entry.name,profileId:profile.id,profile:source.name,created:stat.mtimeMs,bytes:stat.size});
+    const id=idFor(profile.id+'|'+path.relative(io.instance(profile.id),source.dir)+'|'+entry.name+'|'+stat.size+'|'+stat.mtimeMs);
+    origins.set(id,file);const target=path.join(archive,id+'.png'),meta=path.join(archive,id+'.json');
+    const previous=await fs.readFile(meta,'utf8').then(JSON.parse).catch(()=>null);if(previous?.deleted)continue;
+    const row={id,name:entry.name,profileId:profile.id,profile:source.name,created:stat.mtimeMs,bytes:stat.size};
+    if(!previous){
+     await fs.copyFile(file,target+'.tmp');
+     const copied=await fs.open(target+'.tmp','r');let complete=false;
+     try{const header=Buffer.alloc(8),tail=Buffer.alloc(12);await copied.read(header,0,8,0);await copied.read(tail,0,12,Math.max(0,stat.size-12));const after=await fs.stat(file);complete=header.equals(Buffer.from('89504e470d0a1a0a','hex'))&&tail.equals(Buffer.from('0000000049454e44ae426082','hex'))&&after.size===stat.size&&after.mtimeMs===stat.mtimeMs;}finally{await copied.close();}
+     if(!complete){await fs.unlink(target+'.tmp');continue;}
+     await fs.rename(target+'.tmp',target);await fs.writeFile(meta,JSON.stringify(row));
+    }
+
    }
   }}
+  for(const entry of await fs.readdir(archive)){if(!/^[a-f0-9]{64}\.json$/.test(entry))continue;
+   try{const row=JSON.parse(await fs.readFile(path.join(archive,entry),'utf8'));if(row.deleted||(profileId&&row.profileId!==profileId))continue;const file=path.join(archive,entry.slice(0,-5)+'.png');const st=await fs.lstat(file);if(!st.isFile()||st.isSymbolicLink())continue;row.id=entry.slice(0,-5);files.set(row.id,file);rows.push(row);}catch{}
+  }
   rows.sort((a,b)=>b.created-a.created||a.name.localeCompare(b.name));
   const start=Math.max(0,Number(offset)||0),count=Math.max(1,Math.min(60,Number(limit)||48)),page=rows.slice(start,start+count);
   for(const row of page){
@@ -50,6 +68,12 @@ function createScreenshotService({store,io,nativeImage,shell}){
   if(bytes.length>2*1024*1024)throw Error('Screenshot is too large to share.');
   return {name:path.basename(file),width:size.width,height:size.height,data:'data:image/jpeg;base64,'+bytes.toString('base64'),thumbnail:'data:image/jpeg;base64,'+image.resize({width:320}).toJPEG(72).toString('base64')};
  }
- return {list,open,attachment};
+ async function remove(id){return serial(async()=>{
+  const file=files.get(id);if(!file)throw Error('Refresh Screenshots before deleting this image.');
+  const st=await fs.lstat(file);if(!st.isFile()||st.isSymbolicLink()||path.dirname(file)!==archive)throw Error('Invalid screenshot.');
+  const original=origins.get(id);if(original){const stat=await fs.lstat(original).catch(()=>null);if(stat?.isFile()&&!stat.isSymbolicLink())await fs.unlink(original);}
+  await fs.writeFile(path.join(archive,id+'.json'),JSON.stringify({id,deleted:true}));await fs.unlink(file);files.delete(id);origins.delete(id);return true;
+ });}
+ return {list:options=>serial(()=>collect(options)),preserve:()=>serial(()=>collect({limit:1})),open,attachment,remove};
 }
 module.exports={createScreenshotService};

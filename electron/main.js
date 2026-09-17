@@ -8,6 +8,7 @@ const game = require('./game/launch');
 const mods = require('./game/mods');
 const { autoUpdater } = require('electron-updater');
 
+const gameUI=require('./game-ui').createGameUI({BrowserWindow,net});
 let win = null;
 /* Several Minecraft accounts can be signed in; one is active at a time. */
 let accounts = [];         // [{ name, uuid, accessToken, expiresAt, refreshToken }]
@@ -30,7 +31,7 @@ function upsert(acc) {
   if (i >= 0) accounts[i] = acc; else accounts.push(acc);
   activeUuid = acc.uuid;
 }
-const send = (channel, payload) => win && !win.isDestroyed() && win.webContents.send(channel, payload);
+const send = (channel,payload)=>{if(win&&!win.isDestroyed())win.webContents.send(channel,payload);gameUI.broadcast(channel,payload);};
 
 function createWindow() {
   win = new BrowserWindow({
@@ -154,10 +155,11 @@ async function liveToken(uuid=activeUuid) {
 }
 
 /* ---------------- IPC ---------------- */
-ipcMain.handle('auth:sign-in', async () => {
+ipcMain.handle('auth:sign-in', async (_e, method='code') => {
   cancelSignIn = false;
   try {
     upsert(await auth.signIn({
+      method,openAuthorization:r=>require('./browser-auth').open(r,{BrowserWindow,parent:win,isCancelled:()=>cancelSignIn}),
       onProgress: p => send('auth:progress', p),
       isCancelled: () => cancelSignIn
     }));
@@ -311,21 +313,22 @@ ipcMain.handle('game:launch',async(_e,payload)=>{
         if(image.getSize().width>2048)throw Error('Cape texture is too large (maximum width 2048).');return image.toPNG();
       });
     }
+    const gameEnvironment=await gameUI.session(instanceId);
     const processInfo=await game.launch(profile,{name:selectedAccount.name,uuid:selectedAccount.uuid,accessToken:token},progress,ev=>{
       if(ev.type==='log'){record.logs.push(ev.line);if(record.logs.length>LOG_MAX)record.logs.shift();return;}
       if(ev.logPath){record.logPath=ev.logPath;recentLogPaths.set(instanceId,ev.logPath);}
       if(ev.type==='running'){record.state='running';saveInstances();if(profile.settings.closeOnLaunch&&win)win.hide();}
       send('game:event',{...ev,instanceId,profileId:profile.id,profile:profile.name});
       if(ev.type==='exit'||ev.type==='error'){
-        running.delete(instanceId);saveInstances();
+        gameUI.release(instanceId);running.delete(instanceId);saveInstances();
         const bad=ev.type==='error'||(ev.code!==0&&ev.code!==null);
         if(bad){const lines=record.logs.length?record.logs.slice(-200):ev.tail||[ev.message||'Java exited before writing output. Full log: '+record.logPath];send('game:crash',{instanceId,profileId:profile.id,profile:profile.name,code:ev.code,log:lines,logPath:record.logPath});}
         if(win){win.show();win.focus();}
       }
-    });
+    },gameEnvironment);
     if(running.get(instanceId)===record){Object.assign(record,processInfo);recentLogPaths.set(instanceId,processInfo.logPath);saveInstances();}
     return {ok:true,profileId:profile.id,instanceId};
-  }catch(error){running.delete(instanceId);saveInstances();return {ok:false,message:error.message};}
+  }catch(error){gameUI.release(instanceId);running.delete(instanceId);saveInstances();return {ok:false,message:error.message};}
 });
 ipcMain.handle('game:instances',async()=>{await instancesReady;refreshExternalInstances();return instanceList();});
 ipcMain.handle('game:log',(_e,id)=>recentLogs.get(id||lastProfileId)||[]);
@@ -345,6 +348,8 @@ const withProfile = (fn) => async (_e, payload) => {
   try { return { ok: true, data: await fn(payload) }; }
   catch (e) { return { ok: false, message: e.message }; }
 };
+ipcMain.handle('mods:dependencies',withProfile(({profile,release})=>require('./game/dependencies').resolve(profile,release)));
+ipcMain.handle('profiles:initialize',withProfile(async({id})=>{const data=await store.loadData(),p=data.profiles.find(p=>p.id===id);if(!p)throw Error('Profile missing');await mods.sync(p);return true;}));
 ipcMain.handle('mods:download', withProfile(({ profile, mod }) => mods.download(profile, mod)));
 ipcMain.handle('mods:remove', withProfile(({ profile, fileName }) => mods.remove(profile, fileName)));
 ipcMain.handle('mods:enabled', withProfile(({ profile, fileName, enabled }) => mods.setEnabled(profile, fileName, enabled)));
@@ -355,9 +360,10 @@ const profileService=require('./game/profiles').createProfileService({
   isRunning:id=>[...running.values()].some(r=>r.profileId===id)
 });
 require('./game/directories').configure(id=>[...running.values()].some(r=>r.profileId===id));
-ipcMain.handle('profiles:remove',withProfile(({id})=>profileService.remove(id)));
+ipcMain.handle('profiles:remove',withProfile(async({id})=>{await screenshots.preserve();return profileService.remove(id);}));
 const screenshots=require('./screenshots').createScreenshotService({store,io:require('./game/io'),nativeImage:require('electron').nativeImage,shell});
 ipcMain.handle('screenshots:list',withProfile(options=>screenshots.list(options)));
+ipcMain.handle('screenshots:delete',withProfile(({id})=>screenshots.remove(id)));
 ipcMain.handle('screenshots:open',withProfile(({id,reveal})=>screenshots.open(id,reveal)));
 ipcMain.handle('screenshots:attach',withProfile(({id,target})=>screenshots.attachment(id).then(image=>net.uploadAttachment({...image,...target}))));
 ipcMain.handle('profiles:versions',()=>require('./game/versions').releases);
@@ -366,11 +372,11 @@ ipcMain.handle('profiles:plan-version',withProfile(({id,version,loader})=>profil
 ipcMain.handle('profiles:apply-version',withProfile(({token,choices})=>profileService.apply(token,choices,p=>send('profiles:progress',p))));
 
 ipcMain.handle('store:load', async () => {await instancesReady;const data=await store.loadData();return data?store.saveData(data):data;});
-ipcMain.handle('store:save', async (_e, obj) => {await instancesReady;return store.saveData(obj);});
+ipcMain.handle('store:save', async (_e, obj) => {await instancesReady;const saved=await store.saveData(obj,true);send('store:changed',saved);return saved;});
 
 ipcMain.handle('net:call', async (_e, { method, args = [] }) => {
   try {
-      if (!['friends','requests','addFriend','acceptRequest','declineRequest','removeFriend','history','send','groups','createGroup','updateGroup','leaveGroup','groupHistory','attachment','sendGroup'].includes(method)) throw new Error('Unknown MonkeyNet call.');
+      if (!['groupMembers','shareProfile','importProfile','friends','requests','addFriend','acceptRequest','declineRequest','removeFriend','history','send','groups','createGroup','updateGroup','leaveGroup','groupHistory','attachment','sendGroup'].includes(method)) throw new Error('Unknown MonkeyNet call.');
     return { ok: true, data: await net[method](...args) };
   } catch (e) { return { ok: false, message: e.message }; }
 });
@@ -401,3 +407,5 @@ ipcMain.handle('dialog:pick-png', async (_e, anyImage) => {
   const mime = { jpg: 'jpeg', jpeg: 'jpeg', webp: 'webp', gif: 'gif' }[ext] || 'png';
   return { name: path.basename(r.filePaths[0]), data: `data:image/${mime};base64,` + buf.toString('base64') };
 });
+
+app.on('before-quit',()=>gameUI.close());

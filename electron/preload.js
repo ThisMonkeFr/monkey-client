@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('monkey', {
   desktop: true,
 
   auth: {
-    signIn:   () => ipcRenderer.invoke('auth:sign-in'),
+    signIn:   method => ipcRenderer.invoke('auth:sign-in',method),
     cancel:   () => ipcRenderer.invoke('auth:cancel'),
     signOut:  (uuid) => ipcRenderer.invoke('auth:sign-out', uuid),
     accounts: () => ipcRenderer.invoke('auth:accounts'),
@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('monkey', {
   },
 
   store: {
+    onChanged: on('store:changed'),
     load: () => ipcRenderer.invoke('store:load'),
     save: (obj) => ipcRenderer.invoke('store:save', obj)
   },
@@ -52,6 +53,7 @@ contextBridge.exposeInMainWorld('monkey', {
   },
 
   mods: {
+    dependencies:(profile,release)=>ipcRenderer.invoke('mods:dependencies',{profile,release}),
     download: (profile, mod) => ipcRenderer.invoke('mods:download', { profile, mod }),
     remove: (profile, fileName) => ipcRenderer.invoke('mods:remove', { profile, fileName }),
     setEnabled: (profile, fileName, enabled) => ipcRenderer.invoke('mods:enabled', { profile, fileName, enabled }),
@@ -59,6 +61,7 @@ contextBridge.exposeInMainWorld('monkey', {
   },
 
   profiles: {
+    initialize:id=>ipcRenderer.invoke('profiles:initialize',{id}),
     remove: (id) => ipcRenderer.invoke('profiles:remove',{id}),
     versions: () => ipcRenderer.invoke('profiles:versions'),
     inherit: (sourceId,profile) => ipcRenderer.invoke('profiles:inherit',{sourceId,profile}),
@@ -67,6 +70,7 @@ contextBridge.exposeInMainWorld('monkey', {
     onProgress: on('profiles:progress')
   },
   screenshots: {
+    delete: id=>ipcRenderer.invoke('screenshots:delete',{id}),
     list: (options) => ipcRenderer.invoke('screenshots:list',options),
     open: (id,reveal=false) => ipcRenderer.invoke('screenshots:open',{id,reveal}),
     attach: (id,target) => ipcRenderer.invoke('screenshots:attach',{id,target})

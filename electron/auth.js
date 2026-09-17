@@ -149,18 +149,20 @@ async function getProfile(mcToken) {
 }
 
 /* --- full sign-in ----------------------------------------------------- */
-async function signIn({ onProgress, isCancelled } = {}) {
+async function signIn({ onProgress, isCancelled, method="code", openAuthorization } = {}) {
   const say = (stage, extra) => onProgress && onProgress({ stage, ...extra });
 
-  say('requesting-code');
-  const dc = await requestDeviceCode();
-  say('awaiting-user', {
-    userCode: dc.user_code,
-    verificationUri: dc.verification_uri,
-    expiresIn: dc.expires_in
-  });
-
-  const msa = await pollForToken(dc.device_code, dc.interval, dc.expires_in, isCancelled);
+  let msa;
+  if(method==='browser'){
+    say('awaiting-browser');const browser=require('./browser-auth'),r=browser.request(clientId);
+    const code=await openAuthorization(r);
+    const token=await formPost(`${MSA}/token`,{grant_type:'authorization_code',client_id:clientId,code,redirect_uri:browser.REDIRECT,code_verifier:r.verifier,scope:SCOPE});
+    if(!token.ok)throw new AuthError('browser-signin-failed',token.data?.error_description||'Microsoft sign-in failed.');msa=token.data;
+  }else{
+    say('requesting-code');const dc=await requestDeviceCode();
+    say('awaiting-user',{userCode:dc.user_code,verificationUri:dc.verification_uri,expiresIn:dc.expires_in});
+    msa=await pollForToken(dc.device_code,dc.interval,dc.expires_in,isCancelled);
+  }
   say('xbox');
   const xbl = await xboxLive(msa.access_token);
   const xs  = await xsts(xbl.token);

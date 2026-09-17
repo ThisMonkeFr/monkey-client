@@ -55,10 +55,10 @@ async function clearSessions() {
 /* --- launcher data (profiles, skins, settings) ------------------------ */
 async function loadData() { const data=await readJson(DATA(),null);require('./game/io').setProfiles(data?.profiles||[]);return data; }
 let dataWrites=Promise.resolve();
-function saveData(obj) {
+function saveData(obj,patch=false) {
  const snapshot=JSON.parse(JSON.stringify(obj));
  return dataWrites=dataWrites.catch(()=>{}).then(async()=>{
-  const previous=await readJson(DATA(),null),transaction=await require('./game/directories').reconcile(snapshot,previous);
+  const previous=await readJson(DATA(),null),transaction=await require('./game/directories').reconcile(patch?{...previous,...snapshot}:snapshot,previous);
   try{const temporary=DATA()+'.tmp';await fs.writeFile(temporary,JSON.stringify(transaction.data,null,2));await fs.rename(temporary,DATA());}
   catch(error){await transaction.rollback();throw error;}
   require('./game/io').setProfiles(transaction.data?.profiles||[]);return transaction.data;

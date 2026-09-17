@@ -101,7 +101,7 @@ async function prepare(profile, account, onProgress) {
 
 /* Spawns the game. Everything it prints is mirrored to a log file so a crash
    can be read after the fact instead of guessed at. */
-async function launch(profile, account, onProgress, onEvent) {
+async function launch(profile, account, onProgress, onEvent, environment = {}) {
   const { javaBin, args, gameDir } = await prepare(profile, account, onProgress);
   onProgress({ stage: 'starting', pct: 99, detail: 'Starting Minecraft' });
 
@@ -134,6 +134,7 @@ async function launch(profile, account, onProgress, onEvent) {
   await fsp.writeFile(argsPath, args.map(quoteJavaArgument).join('\n'), { mode: 0o600 });
   const child = spawn(javaBin, ['@' + argsPath], {
     cwd: gameDir,
+    env: {...process.env,...environment},
     detached: true,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe']
