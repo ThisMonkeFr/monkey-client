@@ -20,8 +20,14 @@ async function main(){
  try{
   for(let i=0;i<90;i++){
    await wait(2000);if(exited)throw Error('Game exited before the screenshot check:\n'+text.slice(-16000));
-   if(i===25||i===80){cp.spawnSync('import',['-window','root',path.join(dir,`display-${i}.png`)],{timeout:10000});console.log('Display windows:',cp.spawnSync('xdotool',['search','--onlyvisible','--name','Minecraft','getwindowname'],{encoding:'utf8'}).stdout);}
-   if(i>8&&i%5===0){const search=cp.spawnSync('xdotool',['search','--onlyvisible','--name','Minecraft'],{encoding:'utf8'});const window=search.stdout.trim().split('\n').filter(Boolean).at(-1);if(window){cp.spawnSync('xdotool',['windowfocus','--sync',window],{timeout:5000});cp.spawnSync('xdotool',['key','--clearmodifiers','F2'],{timeout:5000});}}
+   if(i===25||i===80)cp.spawnSync('import',['-window','root',path.join(dir,`display-${i}.png`)],{timeout:10000});
+   if(i>8&&i%5===0){
+    // SDL's Vulkan fallback can leave the window title empty. Match our child
+    // process, so the check still delivers a real key event to that window.
+    const search=cp.spawnSync('xdotool',['search','--onlyvisible','--pid',String(child.pid)],{encoding:'utf8'});
+    const window=search.stdout.trim().split('\n').filter(Boolean).at(-1);
+    if(window){cp.spawnSync('xdotool',['windowfocus','--sync',window],{timeout:5000});cp.spawnSync('xdotool',['key','--clearmodifiers','F2'],{timeout:5000});}
+   }
    const files=await fsp.readdir(path.join(dir,'screenshots')).catch(()=>[]);
    if(files.some(n=>n.endsWith('.png'))){screenshot=path.join(dir,'screenshots',files.find(n=>n.endsWith('.png')));break;}
   }
