@@ -14,9 +14,9 @@ async function fixture(t){
  return {service,control,root,mods,temp,store,release,get data(){return data;}};
 }
 test('new profiles inherit options, shader configuration and packs without changing the source',async t=>{
- const f=await fixture(t);for(const [name,body] of Object.entries({'options.txt':'fov:0.7','config/iris.properties':'shaderPack=sky.zip','shaderpacks/sky.zip':'shader','resourcepacks/pack.zip':'pack'})){await fs.mkdir(path.dirname(path.join(f.root,name)),{recursive:true});await fs.writeFile(path.join(f.root,name),body);}
- const target={id:'new',version:'26.3',loader:'fabric',settings:{}};const result=await f.service.inherit('source',target);assert.equal(result.copied,4);
- assert.equal(await fs.readFile(path.join(f.temp,'new/options.txt'),'utf8'),'fov:0.7');assert.equal(await fs.readFile(path.join(f.temp,'new/config/iris.properties'),'utf8'),'shaderPack=sky.zip');
+ const f=await fixture(t);for(const [name,body] of Object.entries({'options.txt':'fov:0.7','config/iris.properties':'shaderPack=sky.zip','shaderpacks/sky.zip':'shader','resourcepacks/pack.zip':'pack','config/monkeyclient/mod-profiles.json':'{"profiles":[{"name":"PvP"}]}','config/monkeyclient.json':'{"modules":{}}'})){await fs.mkdir(path.dirname(path.join(f.root,name)),{recursive:true});await fs.writeFile(path.join(f.root,name),body);}
+ const target={id:'new',version:'26.3',loader:'fabric',settings:{}};const result=await f.service.inherit('source',target);assert.equal(result.copied,6);
+ assert.equal(JSON.parse(await fs.readFile(path.join(f.temp,'new/config/monkeyclient/mod-profiles.json'),'utf8')).profiles[0].name,'PvP');assert.equal(await fs.readFile(path.join(f.temp,'new/options.txt'),'utf8'),'fov:0.7');assert.equal(await fs.readFile(path.join(f.temp,'new/config/iris.properties'),'utf8'),'shaderPack=sky.zip');
  await fs.writeFile(path.join(f.temp,'new/options.txt'),'custom');await f.service.inherit('source',target);assert.equal(await fs.readFile(path.join(f.temp,'new/options.txt'),'utf8'),'custom');assert.equal(await fs.readFile(path.join(f.root,'options.txt'),'utf8'),'fov:0.7');
 });
 test('compatibility includes local JARs and lists only unavailable mods',async t=>{

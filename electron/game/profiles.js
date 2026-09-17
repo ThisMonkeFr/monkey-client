@@ -29,7 +29,7 @@ function createProfileService({io,store,fetchImpl=fetch,installManaged=async()=>
  async function copyTree(from,to){let count=0;for(const entry of await fs.readdir(from,{withFileTypes:true}).catch(e=>{if(e.code==='ENOENT')return [];throw e;})){if(entry.isSymbolicLink())continue;const source=path.join(from,entry.name),target=path.join(to,entry.name);if(entry.isDirectory())count+=await copyTree(source,target);else if(entry.isFile()&&await copyFileMissing(source,target))count++;}return count;}
  async function inherit(sourceId,target){
   assertSupported(target.version,target.loader);const to=directory(target);if(!sourceId)return {copied:0};const {profile:source}=await saved(sourceId);const from=directory(source);if(from===to)throw Error('A new profile needs its own game directory');
-  let copied=0;for(const name of ['options.txt','optionsof.txt','optionsshaders.txt','config/iris.properties','config/oculus.properties','config/shaders.properties'])if(await copyFileMissing(path.join(from,name),path.join(to,name)))copied++;
+  let copied=0;for(const name of ['options.txt','optionsof.txt','optionsshaders.txt','config/iris.properties','config/oculus.properties','config/shaders.properties','config/monkeyclient.json'])if(await copyFileMissing(path.join(from,name),path.join(to,name)))copied++;
   for(const folder of ['resourcepacks','shaderpacks','config/monkeyclient'])copied+=await copyTree(path.join(from,folder),path.join(to,folder));return {copied};
  }
  async function plan(id,version,loader){

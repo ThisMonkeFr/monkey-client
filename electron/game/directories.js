@@ -20,7 +20,7 @@ async function reconcile(data,previous){
  try{
   for(const p of data.profiles){
    if(!/^[a-zA-Z0-9_-]{1,100}$/.test(p.id))throw Error('Invalid profile ID');
-   const before=old.get(p.id),original=before?.directoryName||p.directoryName||p.id;
+   const before=old.get(p.id),original=before?.directoryName||p.id;
    let name=original;const from=child(parent,original);
    // A live process must keep its current path. Renaming is retried on save.
    if(!p.settings?.gameDir&&!isRunning(p.id)){

@@ -11,5 +11,15 @@ const path=require('node:path'),fs=require('node:fs/promises'),{pathToFileURL}=r
  await page.setViewportSize({width:1000,height:680});await page.screenshot({path:'build/ui-check/minimum.png'});
  const result=await page.evaluate(()=>({style:document.documentElement.dataset.menuStyle,overflow:document.documentElement.scrollWidth>innerWidth,booting:document.body.classList.contains('booting'),profileClipped:(()=>{const hero=document.querySelector('.hero').getBoundingClientRect(),profile=document.querySelector('.prow-sel').getBoundingClientRect();return profile.bottom>hero.bottom+1;})()}));
  if(result.style!=='monkey'||result.overflow||result.booting||result.profileClipped||errors.length)throw Error(JSON.stringify({result,errors}));
+ await page.evaluate(()=>{S.account={name:'TestPlayer',uuid:'a'.repeat(32)};S.friends=[{id:'b'.repeat(32),ign:'TestFriend',online:true,status:'Online'}];S.requests=[];S.chats={};netConnected=true;MonkeyNet.call=async(method,...args)=>({ok:true,data:method==='groups'?{groups:[]}:method==='friends'?{friends:[{uuid:'b'.repeat(32),name:'TestFriend',online:true}]}:method==='requests'?{requests:[]}:method==='history'?{messages:[]}:{}});go('friends');});
+ await page.getByRole('button',{name:'New group',exact:true}).click();
+ if(!await page.locator('#group-save').isDisabled())throw Error('Blank group can be created');
+ await page.locator('#group-name').fill('Building crew');await page.locator('.group-member').check();
+ if(!await page.locator('#group-save').isDisabled())throw Error('Group without icon can be created');
+ await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=64;c.getContext('2d').fillRect(0,0,64,64);groupDraft.icon=c.toDataURL();document.querySelector('#group-icon').src=groupDraft.icon;document.querySelector('#group-icon').style.visibility='visible';validateGroupDraft();});
+ if(await page.locator('#group-save').isDisabled())throw Error('Valid group is blocked');await page.screenshot({path:'build/ui-check/group-create.png'});
+ await page.evaluate(()=>{closeModal();chatGroups=[{id:'group-test',owner:S.account.uuid,name:'Building crew',icon:groupDraft.icon,members:[S.account.uuid,S.friends[0].id]}];S.openChat='group:group-test';S.chats[S.openChat]=[{id:'one',me:false,name:'TestFriend',t:'Our new base!',at:Date.now(),attachmentId:'fixture'}];chatImages.set('fixture',groupDraft.icon);render();});await page.screenshot({path:'build/ui-check/group-chat.png'});
+ await page.evaluate(()=>{go('profiles');newProfileModal();});await page.screenshot({path:'build/ui-check/new-profile.png'});
+ if(errors.length)throw Error(JSON.stringify(errors));
  await browser.close();console.log('PASS renderer startup, screenshots, settings, orange theme and minimum window size');
 })().catch(error=>{console.error(error);process.exit(1);});

@@ -8,6 +8,7 @@ const { monkeyNet } = require('./config');
 let sessionToken = null;
 let socket = null;
 let onEvent = () => {};
+let generation = 0;
 
 const http = async (path, { method = 'GET', body, auth = true } = {}) => {
   const res = await fetch(monkeyNet + path, {
@@ -25,6 +26,7 @@ const http = async (path, { method = 'GET', body, auth = true } = {}) => {
 
 async function connect(account, emit) {
   if (!monkeyNet) throw new Error('No MonkeyNet server configured.');
+  disconnect();const current=++generation;
   onEvent = emit;
 
   // 1. server hands us a one-time serverId
@@ -37,19 +39,21 @@ async function connect(account, emit) {
   const { token } = await http('/auth/verify', {
     method: 'POST', auth: false, body: { username: account.name, serverId }
   });
+  if(current!==generation)return false;
   sessionToken = token;
 
   const wsUrl = monkeyNet.replace(/^http/, 'ws') + `/ws?token=${encodeURIComponent(token)}`;
-  socket = new WebSocket(wsUrl);
-  socket.on('message', raw => {
-    try { onEvent(JSON.parse(raw.toString())); } catch {}
+  const connection = new WebSocket(wsUrl);socket=connection;
+  connection.on('message', raw => {
+    try { if(current===generation)onEvent(JSON.parse(raw.toString())); } catch {}
   });
-  socket.on('close', () => { onEvent({ type: 'disconnected' }); socket = null; });
-  socket.on('error', () => {});
+  connection.on('close', () => { if(current===generation){onEvent({ type: 'disconnected' }); socket = null;} });
+  connection.on('error', () => {});
   return true;
 }
 
 function disconnect() {
+  generation++;
   if (socket) { socket.close(); socket = null; }
   sessionToken = null;
 }
