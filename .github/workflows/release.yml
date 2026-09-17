@@ -60,6 +60,8 @@ jobs:
           pattern: installer-*
           merge-multiple: true
           path: release
+      - name: Normalize asset filenames for GitHub
+        run: node tools/normalize-release-assets.cjs release
       - name: Verify every platform's update files
         run: node tools/verify-update-assets.cjs release
       - name: Publish complete release
