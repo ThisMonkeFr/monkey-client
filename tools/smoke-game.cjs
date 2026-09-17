@@ -8,7 +8,7 @@ async function main(){
  if(!version||!['fabric','forge'].includes(loader))throw Error('Expected Minecraft version and loader');
  const id=version+'-'+loader,dir=path.join(root,'instances',id);await fsp.mkdir(dir,{recursive:true});
  const profile={id,name:'Release verification',version,loader,mods:[],settings:{ram:2048,width:854,height:480}};
- await fsp.writeFile(path.join(dir,'options.txt'),'soundCategory_music:0.0\nmaxFps:30\nrenderDistance:4\nsimulationDistance:4\n');
+ await fsp.writeFile(path.join(dir,'options.txt'),'soundCategory_music:0.0\nmaxFps:30\nrenderDistance:4\nsimulationDistance:5\n');
  let last='';const progress=p=>{if(last!==p.stage){last=p.stage;console.log(p.stage,p.detail);}};
  await clientmod.ensure(profile,progress);
  const prepared=await game.prepare(profile,{name:'ReleaseCheck',uuid:'00000000000000000000000000000001',accessToken:'offline'},progress);

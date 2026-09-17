@@ -26,6 +26,12 @@ test('Java selection requires the exact game major and uses the console executab
  await assert.rejects(java.ensure({id:'1.21.11',javaVersion:{majorVersion:21}},'C:/java25/bin/java.exe'),/needs Java 21/);
  assert.ok(probed.every(bin=>!bin.endsWith('javaw.exe')));
 });
+test('Fabric replaces the older vanilla ASM artifact without dropping native classifiers',()=>{
+ const {inheritedLibraries}=load('game/install.js',{'./io':{}});
+ const libs=[{name:'org.ow2.asm:asm:9.6'},{name:'org.lwjgl:lwjgl:3.3.3'},{name:'org.lwjgl:lwjgl:3.3.3:natives-windows'}];
+ const retained=inheritedLibraries(libs,[{name:'org.ow2.asm:asm:9.10.1'},{name:'org.lwjgl:lwjgl:3.4.0'}]);
+ assert.equal(retained.length,1);assert.equal(retained[0].name,'org.lwjgl:lwjgl:3.3.3:natives-windows');
+});
 test('launch reservations, confirmation, exits and logs are independent across profiles',async t=>{
  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'monkey-launch-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
  const handlers=new Map(),events=new Map(),launches=[];

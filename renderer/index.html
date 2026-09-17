@@ -1439,8 +1439,8 @@ function pagePlay(){
     <div class="cards">
       <div class="card2 stone">
         <h4>Monkey Client updates <span class="badge">0.8.0</span></h4>
-        <p>A familiar vanilla interface, saved mod profiles, new backgrounds,
-           and your settings wherever you play.</p>
+        <p>A compact Monkey menu, 4K screenshots, multiple game instances,
+           and more reliable version launches.</p>
         <time>Latest release</time>
       </div>
       <div class="card2 stone">
@@ -2321,7 +2321,7 @@ function bgPrevAttach(){
     const c=document.getElementById('bgfx-prev');
     if(!c){ PREVRAF=null; return; }
     const cfg=bgCfg();
-    bgFrameOn(c, cfg.animate?dt:0);
+    if(now-(c.lastPaint||0)>66){c.lastPaint=now;bgFrameOn(c, cfg.animate?Math.min(.1,dt):0);}
     PREVRAF=requestAnimationFrame(loop);
   };
   PREVRAF=requestAnimationFrame(loop);

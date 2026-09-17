@@ -7,6 +7,8 @@ const { shared, download, pool, allowed, mavenPath, fsp } = io;
 const MANIFEST = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json';
 const ASSETS   = 'https://resources.download.minecraft.net';
 const FABRIC   = 'https://meta.fabricmc.net/v2';
+const libraryKey=name=>{const [group,artifact,,classifier='']=name.split(':');return `${group}:${artifact}:${classifier}`;};
+function inheritedLibraries(libraries,overrides){const replaced=new Set(overrides.map(l=>libraryKey(l.name)));return libraries.filter(l=>!replaced.has(libraryKey(l.name)));}
 
 const json = async (url) => {
   const r = await fetch(url);
@@ -134,7 +136,10 @@ async function install(mcVersion, loader, onProgress = () => {}) {
   const version = resolved.version;
 
   onProgress({ stage: 'metadata', pct: 5, detail: 'Working out what needs downloading' });
-  const { jars, natives } = libraryTasks(version);
+  // Loader libraries replace the vanilla artifact with the same coordinate.
+  // Fabric rejects two ASM versions even when the newer one comes first.
+  const baseLibraries=loader==='fabric'?inheritedLibraries(version.libraries||[],resolved.extraLibs||[]):version.libraries;
+  const { jars, natives } = libraryTasks({...version,libraries:baseLibraries});
   const { index, objects } = await assetTasks(version);
 
   const client = {
@@ -180,4 +185,4 @@ async function install(mcVersion, loader, onProgress = () => {}) {
   };
 }
 
-module.exports = { install, resolve, versionJson, manifest, fabricLoaders, libraryTasks, nativeMatches };
+module.exports = { install, resolve, versionJson, manifest, fabricLoaders, libraryTasks, nativeMatches, inheritedLibraries };
