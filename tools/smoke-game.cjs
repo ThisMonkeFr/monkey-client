@@ -16,12 +16,13 @@ async function main(){
  const output=fs.createWriteStream(path.join(dir,'check.log'));let text='',exited=false;
  const child=cp.spawn(prepared.javaBin,['@'+argsFile],{cwd:dir,stdio:['ignore','pipe','pipe']});
  const collect=data=>{output.write(data);text=(text+data).slice(-100000);};child.stdout.on('data',collect);child.stderr.on('data',collect);child.on('exit',()=>exited=true);
- let screenshot=null;
+ let screenshot=null,resourcesReadyAt=0;
  try{
   for(let i=0;i<90;i++){
    await wait(2000);if(exited)throw Error('Game exited before the screenshot check:\n'+text.slice(-16000));
    if(i===25||i===80)cp.spawnSync('import',['-window','root',path.join(dir,`display-${i}.png`)],{timeout:10000});
-   if(i>8&&i%5===0){
+   if(!resourcesReadyAt&&/Created:.*(?:gui|items)\.png/.test(text))resourcesReadyAt=Date.now();
+   if(resourcesReadyAt&&Date.now()-resourcesReadyAt>10000&&i%5===0){
     // SDL's Vulkan fallback can leave the window title empty. Match our child
     // process, so the check still delivers a real key event to that window.
     const search=cp.spawnSync('xdotool',['search','--onlyvisible','--pid',String(child.pid)],{encoding:'utf8'});
