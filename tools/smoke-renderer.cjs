@@ -20,6 +20,7 @@ const path=require('node:path'),fs=require('node:fs/promises'),{pathToFileURL}=r
  if(await page.locator('#group-save').isDisabled())throw Error('Valid group is blocked');await page.screenshot({animations:'disabled',path:'build/ui-check/group-create.png'});
  await page.evaluate(()=>{closeModal();chatGroups=[{id:'group-test',owner:S.account.uuid,name:'Building crew',icon:groupDraft.icon,members:[S.account.uuid,S.friends[0].id]}];S.openChat='group:group-test';S.chats[S.openChat]=[{id:'one',me:false,name:'TestFriend',t:'Our new base!',at:Date.now(),attachmentId:'fixture'}];chatImages.set('fixture',groupDraft.icon);render();});await page.screenshot({animations:'disabled',path:'build/ui-check/group-chat.png'});
  await page.evaluate(()=>{go('profiles');newProfileModal();});await page.screenshot({animations:'disabled',path:'build/ui-check/new-profile.png'});
+ await page.evaluate(()=>{closeModal();go('friends');});const chatFits=await page.evaluate(()=>{const chat=document.querySelector('.chat').getBoundingClientRect(),send=document.querySelector('[data-act=send-msg]').getBoundingClientRect();return send.right<=chat.right;});if(!chatFits)throw Error('Chat composer extends behind member sidebar');
  if(errors.length)throw Error(JSON.stringify(errors));
  await browser.close();console.log('PASS renderer startup, screenshots, settings, orange theme and minimum window size');
 })().catch(error=>{console.error(error);process.exit(1);});
