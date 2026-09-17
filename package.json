@@ -67,6 +67,7 @@
   "dependencies": {
     "electron-updater": "^6.3.9",
     "extract-zip": "^2.0.1",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yauzl": "^3.4.0"
   }
 }

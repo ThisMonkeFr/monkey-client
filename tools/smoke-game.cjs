@@ -32,13 +32,18 @@ async function main(){
     if(window){cp.spawnSync('xdotool',['windowfocus','--sync',window],{timeout:5000});cp.spawnSync('xdotool',['key','--clearmodifiers','F2'],{timeout:5000});}
    }
    const files=await fsp.readdir(path.join(dir,'screenshots')).catch(()=>[]);
-   if(files.some(n=>n.endsWith('.png'))){screenshot=path.join(dir,'screenshots',files.find(n=>n.endsWith('.png')));break;}
+   for(const name of files.filter(n=>n.endsWith('.png'))){
+    const candidate=path.join(dir,'screenshots',name),png=await fsp.readFile(candidate);
+    // Minecraft creates the file before the async PNG encoder finishes.
+    if(png.length>33&&png.subarray(-8,-4).toString('ascii')==='IEND'){screenshot=candidate;break;}
+   }
+   if(screenshot)break;
   }
   if(!screenshot)throw Error('No F2 screenshot was produced:\n'+text.slice(-16000));
   await wait(1000);const png=await fsp.readFile(screenshot),width=png.readUInt32BE(16),height=png.readUInt32BE(20);
   if(width!==3840||height!==2160)throw Error(`Expected 4K, received ${width}x${height}`);
   if(!text.includes('Monkey Client ready'))throw Error('Client initialization message was missing');
-  for(const marker of ['RESOURCES_OK','WORLD_JOINED','PAUSE_MENU','MENU_OPEN','WORLD_PASS'])if(!text.includes('MONKEY_QA_'+marker))throw Error('Missing world check: '+marker);
+  for(const marker of ['RESOURCES_OK','WORLD_JOINED','PAUSE_MENU','MENU_OPEN','MODULE_GRID','WORLD_PASS'])if(!text.includes('MONKEY_QA_'+marker))throw Error('Missing world check: '+marker);
   await wait(3000);if(exited)throw Error('Game exited after capture:\n'+text.slice(-16000));
   cp.spawnSync('import',['-window','root',path.join(dir,'display-world.png')],{timeout:10000});
   console.log(`PASS ${version} ${loader}: fresh world joined, all modules enabled, resources resolved, pause and Monkey menus opened; F2 saved ${width}x${height}; game remained alive`);

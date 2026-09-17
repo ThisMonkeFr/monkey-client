@@ -20,7 +20,7 @@ The catalog was checked against the publishers' Modrinth releases on September 1
 - [ImmediatelyFast](https://github.com/RaphiMC/ImmediatelyFast) improves immediate-mode rendering, including GUI and entity workloads.
 - [Entity Culling](https://github.com/tr7zw/EntityCulling) skips entities hidden behind geometry. Its benefit depends on what is hidden in the scene; unusual mod renderers may need its exclusions.
 - [Dynamic FPS](https://github.com/juliand665/Dynamic-FPS) reduces work when a game is in the background. This is useful for multiple instances; it is not a foreground FPS booster.
-- Maximum adds available stable releases of [More Culling](https://github.com/FxMorin/MoreCulling) and [BadOptimizations](https://github.com/ItsThosea/BadOptimizations). Extra culling and cached lighting can have visual tradeoffs, so they are optional.
+- Maximum adds available stable releases of [More Culling](https://github.com/FxMorin/MoreCulling) and [BadOptimizations](https://github.com/imthosea/BadOptimizations). Extra culling and cached lighting can have visual tradeoffs, so they are optional.
 
 ModernFix, Embeddium and Enhanced Block Entities were also checked; no exact compatible releases were selected for the supported combinations. Beta-only releases were excluded. This is a reviewed set of available methods, not a claim that every possible optimization has been discovered.
 

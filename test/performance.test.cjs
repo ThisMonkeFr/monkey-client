@@ -14,3 +14,13 @@ test('turning off optimizations removes only owned unchanged files',async t=>{
  await performance.sync({id:'test',version:'26.2',loader:'fabric',settings:{performance:'off'}},()=>{},{fsp:fs,instance:()=>root});
  await assert.rejects(fs.stat(path.join(mods,'monkey-perf-owned.jar')));assert.equal(await fs.readFile(path.join(mods,'monkey-perf-edited.jar'),'utf8'),'custom');assert.equal(await fs.readFile(path.join(mods,'user.jar'),'utf8'),'user');
 });
+test('a manually installed optimization is detected by metadata and is not installed twice',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'monkey-local-perf-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));await fs.mkdir(path.join(root,'mods'));
+ const file=path.join(root,'mods','custom-name.jar');await fs.copyFile(path.join(__dirname,'fixtures/local-optimization.jar'),file);
+ const ids=await require('../electron/game/mod-ids').readIds(file);assert.ok(ids.has('entityculling'));assert.ok(!ids.has('minecraft'));
+ const selected=await performance.sync({id:'test',version:'1.21.10',loader:'forge',settings:{}},()=>{},{fsp:fs,instance:()=>root,download:()=>{throw Error('Should not download duplicate');}});assert.equal(selected.length,0);assert.ok((await fs.stat(file)).size>0);
+});
+test('verified managed optimizations are reused without a network download',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'monkey-reuse-perf-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));await fs.mkdir(path.join(root,'mods'));const p={id:'test',version:'1.21.10',loader:'forge',settings:{}},row=performance.selection(p)[0],oldHash=row.sha512;row.sha512=crypto.createHash('sha512').update('verified').digest('hex');t.after(()=>row.sha512=oldHash);await fs.writeFile(path.join(root,'mods',row.fileName),'verified');
+ await performance.sync(p,()=>{},{fsp:fs,instance:()=>root,download:()=>{throw Error('Should reuse installed copy');}});
+});

@@ -604,6 +604,7 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
 <input type="file" id="filepick" accept="image/png" hidden>
 <script src="model.js"></script>
 <script src="player-gpu.js"></script>
+<script src="performance-info.js"></script>
 <script src="blocks.js"></script>
 <script src="profile-icons.js"></script>
 <script src="backgrounds.js"></script>
@@ -1110,7 +1111,7 @@ function drawNametag(cv, opts){
   const pt = MODEL.project([0, 35, 0], opts, cv.width, cv.height);
   const size = Math.max(12, Math.round(opts.zoom*2.6));
   c.save();
-  c.font = `${size}px Minecraft, monospace`;
+  c.font = `${size}px MinecraftUI, monospace`;
   c.textBaseline = 'top';
   const w = c.measureText(name).width;
   const badge = LOGO_IMG.complete && LOGO_IMG.naturalWidth ? size : 0;
@@ -1614,7 +1615,7 @@ function newProfileModal(step={v:'',l:'',n:'',i:'grass'}){
         ${loadersFor(step.v).map(l=>`<button data-act="np-l" data-l="${l}" class="${step.l===l?'on':''}">
           <b style="display:block;color:var(--tx);font-size:14px">${cap(l)}</b>
           <span style="font-size:11.5px">${l!=='vanilla'?'Mods supported':'No mods'}</span></button>`).join('')}</div>${step.v==='26.3'?'<p class="hint">Forge has not released a 26.3 build yet.</p>':''}</div>
-      ${sel()?`<p class="hint">Copies options, resource packs and shader packs from ${esc(sel().name)}.</p>`:''}
+      ${sel()?`<p class="hint">Copies options, mod profiles, resource packs and shader packs from ${esc(sel().name)}.</p>`:''}
       <div class="field"><label for="npn">Profile name</label>
         <input type="text" id="npn" value="${esc(step.n)}" placeholder="Jungle SMP" autocomplete="off"></div>
       <div class="field"><label>Icon</label><div class="picker icons">
@@ -1721,6 +1722,7 @@ function settingsModal(id){
 
   if(setTab==='performance') body=`
     <div class="field"><label for="performance-mode">Optimization preset</label><select id="performance-mode" data-act="s-performance">${[['balanced','Balanced · vanilla visuals'],['maximum','Maximum · extra culling'],['off','Off · Monkey Client only']].map(([k,n])=>`<option value="${k}" ${(s.performance||'balanced')===k?'selected':''}>${n}</option>`).join('')}</select></div>
+    <p><b>For ${p.version} · ${cap(p.loader)}</b></p><p class="hint">${performanceNames(p).join(', ')||'No additional optimization mods selected.'}</p>
     <p class="hint">Installs compatible optimizations on your next launch. Balanced preserves vanilla visuals. Maximum can skip additional hidden faces and cache lighting updates.</p>
     <p class="hint">${p.loader==='fabric'?'Sodium is included with Monkey Client. The preset also checks Lithium, FerriteCore, ImmediatelyFast, Entity Culling and Dynamic FPS for your exact version.':p.loader==='forge'?'Forge 1.21.9 and 1.21.10 support Entity Culling. The other supported Forge versions currently have no exact releases in this tested optimization catalog.':'Vanilla does not load optimization mods.'}</p>
     <p class="hint">For maximum foreground FPS, turn VSync off and set Max Framerate to Unlimited in Minecraft. Keep your render distance, textures and shaders at the quality you prefer. Dynamic FPS reduces background usage when another game or window is active.</p>
@@ -1791,6 +1793,7 @@ async function applyVersionChange(){
 /* ============================================================
    MODS â€” installed for this profile, or discover on Modrinth
    ============================================================ */
+function performanceNames(p){const mode=p.settings?.performance||'balanced';return (PERFORMANCE_INFO.find(r=>r.minecraft===p.version&&r.loader===p.loader)?.mods||[]).filter(m=>mode!=='off'&&(mode==='maximum'||m.tier==='balanced')).map(m=>m.title);}
 const MOD_TABS=[['mod','Mods'],['modpack','Modpacks'],['resourcepack','Resource packs'],
   ['shader','Shaders'],['datapack','Data packs']];
 
@@ -1896,7 +1899,7 @@ function pageInstalledMods(){
       </div>
     </div>` : '';
 
-  return `<div class="page">${modsHeader(p)}${managed}
+  return `<div class="page">${modsHeader(p)}${managed}${performanceNames(p).length?`<div class="note" style="margin:12px 0"><div><b>${cap(p.settings.performance||'balanced')} optimizations</b><p>${performanceNames(p).map(esc).join(', ')}</p><small>Managed for ${p.version} · ${cap(p.loader)}. Change the preset in profile settings.</small></div></div>`:''}
     ${p.mods.map(m=>`<div class="mrow stone ${m.enabled===false?'off':''}">
       <img src="${esc(m.icon||'')}" alt="" onerror="this.style.visibility='hidden'">
       <div class="body">
@@ -3034,7 +3037,7 @@ document.addEventListener('change', async e => {
       save(); break;
     case 's-ram': p.settings.ram=parseInt(t.value); settingsModal(setId); break;
     case 's-cjava': p.settings.customJava=t.checked; settingsModal(setId); break;
-    case 's-performance': p.settings.performance=t.value; break;
+    case 's-performance': p.settings.performance=t.value; settingsModal(setId); break;
     case 's-cargs': p.settings.customArgs=t.checked; settingsModal(setId); break;
     case 's-full': p.settings.fullscreen=t.checked; break;
     case 's-close': p.settings.closeOnLaunch=t.checked; break;
