@@ -1,6 +1,7 @@
 const {app,BrowserWindow,ipcMain}=require('electron');
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path');
 app.commandLine.appendSwitch('no-sandbox');
+app.on('window-all-closed',()=>{});
 const me={name:'TestPlayer',uuid:'a'.repeat(32)},friend={uuid:'b'.repeat(32),name:'TestFriend',online:true},stranger={uuid:'c'.repeat(32),name:'Builder'};
 const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFZkAAAAASUVORK5CYII=';
 const group={id:'group-test',name:'Building crew',owner:me.uuid,icon:png,members:[me.uuid,friend.uuid,stranger.uuid]};
@@ -32,6 +33,7 @@ app.whenReady().then(async()=>{
  await js("openChat('group:group-test')");await until(()=>js("!!document.querySelector('.group-people')&&document.querySelector('.group-people').textContent.includes('Builder')"));
  assert.equal(await js("document.querySelectorAll('[data-act=group-friend]').length"),1);
  assert.ok(await js("document.querySelector('.chat').textContent.includes('Builder')"));
+ await until(()=>js("!document.querySelector('#boot-screen')"));await wait(250);
  await fs.mkdir('build/ui-check',{recursive:true});let frame=await fetch(env.MONKEY_UI_URL+'/frame',{headers});assert.equal(frame.status,200);await fs.writeFile('build/ui-check/in-game-friends.png',Buffer.from(await frame.arrayBuffer()));
  await post('/open',{tab:'screenshots'});await until(()=>js("document.body.textContent.includes('World.png')"));
  const click=async selector=>{const pos=await js(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);await post('/input',{type:'mouseDown',button:'left',...pos});await post('/input',{type:'mouseUp',button:'left',...pos});};
