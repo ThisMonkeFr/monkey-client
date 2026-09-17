@@ -259,6 +259,7 @@ ipcMain.handle('mc:upload-skin', async (_e, { data, variant }) => {
 
 const running = new Map();
 const recentLogs = new Map();
+const recentLogPaths = new Map();
 const LOG_MAX = 400;
 let lastProfileId = null;
 const instanceList = () => [...running.values()].map(r => ({profile:r.profile,profileId:r.profileId,pid:r.pid||null,startedAt:r.startedAt,logPath:r.logPath||null,state:r.state,gameDir:r.gameDir}));
@@ -280,7 +281,7 @@ async function restoreInstances(){
   }catch{}
 }
 function refreshExternalInstances(){for(const [id,record] of running)if(record.external){try{process.kill(record.pid,0);}catch{running.delete(id);}}}
-function rememberLog(id,lines){recentLogs.delete(id);recentLogs.set(id,lines);while(recentLogs.size>8)recentLogs.delete(recentLogs.keys().next().value);}
+function rememberLog(id,lines){recentLogs.delete(id);recentLogs.set(id,lines);recentLogPaths.delete(id);while(recentLogs.size>8){const key=recentLogs.keys().next().value;recentLogs.delete(key);recentLogPaths.delete(key);}}
 ipcMain.handle('game:launch',async(_e,payload)=>{
   await instancesReady;
   const {profile,confirmAdditional=false}=payload||{};
@@ -309,7 +310,7 @@ ipcMain.handle('game:launch',async(_e,payload)=>{
     }
     const processInfo=await game.launch(profile,{name:selectedAccount.name,uuid:selectedAccount.uuid,accessToken:token},progress,ev=>{
       if(ev.type==='log'){record.logs.push(ev.line);if(record.logs.length>LOG_MAX)record.logs.shift();return;}
-      if(ev.logPath)record.logPath=ev.logPath;
+      if(ev.logPath){record.logPath=ev.logPath;recentLogPaths.set(profile.id,ev.logPath);}
       if(ev.type==='running'){record.state='running';saveInstances();if(profile.settings.closeOnLaunch&&win)win.hide();}
       send('game:event',{...ev,profileId:profile.id,profile:profile.name});
       if(ev.type==='exit'||ev.type==='error'){
@@ -319,7 +320,7 @@ ipcMain.handle('game:launch',async(_e,payload)=>{
         if(win){win.show();win.focus();}
       }
     });
-    if(running.get(profile.id)===record){Object.assign(record,processInfo);saveInstances();}
+    if(running.get(profile.id)===record){Object.assign(record,processInfo);recentLogPaths.set(profile.id,processInfo.logPath);saveInstances();}
     return {ok:true,profileId:profile.id};
   }catch(error){running.delete(profile.id);saveInstances();return {ok:false,message:error.message};}
 });
@@ -328,7 +329,9 @@ ipcMain.handle('game:log',(_e,id)=>recentLogs.get(id||lastProfileId)||[]);
 ipcMain.handle('game:save-log',async(_e,id)=>{
   const key=id||lastProfileId,record=running.get(key),lines=recentLogs.get(key)||[];
   const target=path.join(app.getPath('downloads'),`monkey-client-log-${Date.now()}.txt`);
-  await require('fs/promises').writeFile(target,lines.length?lines.join('\n'):'No console output. '+(record?.logPath||''),'utf8');shell.showItemInFolder(target);return target;
+  const source=record?.logPath||recentLogPaths.get(key),fs=require('fs/promises');
+  let copied=false;if(source)try{await fs.copyFile(source,target);copied=true;}catch{}
+  if(!copied)await fs.writeFile(target,lines.length?lines.join('\n'):'No console output. '+(source||''),'utf8');shell.showItemInFolder(target);return target;
 });
 ipcMain.handle('game:kill',(_e,id)=>{
   const record=id?running.get(id):running.size===1?[...running.values()][0]:null;

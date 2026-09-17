@@ -139,7 +139,8 @@ async function launch(profile, account, onProgress, onEvent) {
     stdio: ['ignore', 'pipe', 'pipe']
   });
   child.unref();
-  let started = false;
+  let started = false, ended = false;
+  let startTimer;
   const tail = [];                       // last lines, for the crash dialog
 
   const watch = (buf) => {
@@ -160,6 +161,7 @@ async function launch(profile, account, onProgress, onEvent) {
   child.stderr.on('data', watch);
 
   child.on('error', e => {
+    if(ended)return;ended=true;clearTimeout(startTimer);
     fsp.unlink(argsPath).catch(() => {});
     log.write(`\n[launcher] could not start Java: ${e.message}\n`);
     log.end();
@@ -167,6 +169,7 @@ async function launch(profile, account, onProgress, onEvent) {
   });
 
   child.on('close', code => {
+    if(ended)return;ended=true;clearTimeout(startTimer);
     fsp.unlink(argsPath).catch(() => {});
     log.write(`\n--- exited with code ${code} ---\n`);
     log.end();
@@ -180,7 +183,8 @@ async function launch(profile, account, onProgress, onEvent) {
     });
   });
 
-  setTimeout(() => { if (!started && child.exitCode === null) { started = true; onEvent({ type: 'running' }); } }, 6000);
+  startTimer=setTimeout(() => { if (!ended&&!started&&child.exitCode===null) { started = true; onEvent({ type: 'running' }); } }, 6000);
+  startTimer.unref();
 
   return { pid: child.pid, logPath, kill: () => child.kill() };
 }

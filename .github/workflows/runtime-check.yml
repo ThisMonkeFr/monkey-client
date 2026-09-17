@@ -1,15 +1,28 @@
 name: Runtime verification
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Checks to run
+        default: all
+        type: choice
+        options: [all, ui]
+      minecraft:
+        description: Minecraft version
+        default: all
+        type: choice
+        options: ['all', '26.3', '26.2', '26.1.2', '26.1.1', '26.1', '1.21.11', '1.21.10', '1.21.9']
 permissions:
   contents: read
 jobs:
   game:
+    if: inputs.scope != 'ui'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        version: ['26.3', '26.2', '26.1.2', '26.1.1', '26.1', '1.21.11', '1.21.10', '1.21.9']
+        version: ${{ inputs.minecraft == 'all' && fromJSON('["26.3","26.2","26.1.2","26.1.1","26.1","1.21.11","1.21.10","1.21.9"]') || fromJSON(format('["{0}"]', inputs.minecraft)) }}
         loader: [fabric, forge]
         exclude:
           - version: '26.3'

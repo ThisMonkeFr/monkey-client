@@ -20,7 +20,7 @@ async function main(){
  try{
   for(let i=0;i<90;i++){
    await wait(2000);if(exited)throw Error('Game exited before the screenshot check:\n'+text.slice(-16000));
-   if(i>8&&i%5===0){const search=cp.spawnSync('xdotool',['search','--onlyvisible','--name','Minecraft'],{encoding:'utf8'});const window=search.stdout.trim().split('\n').filter(Boolean).at(-1);if(window)cp.spawnSync('xdotool',['key','--window',window,'F2']);}
+   if(i>8&&i%5===0){const search=cp.spawnSync('xdotool',['search','--onlyvisible','--name','Minecraft'],{encoding:'utf8'});const window=search.stdout.trim().split('\n').filter(Boolean).at(-1);if(window){cp.spawnSync('xdotool',['windowfocus','--sync',window],{timeout:5000});cp.spawnSync('xdotool',['key','--clearmodifiers','F2'],{timeout:5000});}}
    const files=await fsp.readdir(path.join(dir,'screenshots')).catch(()=>[]);
    if(files.some(n=>n.endsWith('.png'))){screenshot=path.join(dir,'screenshots',files.find(n=>n.endsWith('.png')));break;}
   }
