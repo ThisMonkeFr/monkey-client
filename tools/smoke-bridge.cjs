@@ -41,6 +41,8 @@ app.whenReady().then(async()=>{
  await post('/open',{tab:'skins'});await until(()=>js("document.body.textContent.includes('Add a skin')"));
  await fs.writeFile('build/ui-check/in-game-skins.png',(await wc.capturePage()).toPNG());
  assert.equal(await js('document.documentElement.scrollWidth>innerWidth'),false);
- if(errors.length)throw Error(errors.join('\n'));console.log('PASS real Electron offscreen friends, group members, author names, screenshot controls and skins');bridge.close();app.exit(0);
+ if(errors.length)throw Error(errors.join('\n'));console.log('PASS real Electron offscreen friends, group members, author names, screenshot controls and skins');
+ const gameArg=process.argv.indexOf('--game');if(gameArg>=0){const cp=require('node:child_process');await new Promise((resolve,reject)=>{const child=cp.spawn('node',['tools/smoke-game.cjs',...process.argv.slice(gameArg+1)],{stdio:'inherit',env:{...process.env,...env}});child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(Error('Game bridge check failed: '+code)));});}
+ bridge.close();app.exit(0);
 }).catch(e=>{console.error(e);bridge?.close();app.exit(1);});
-setTimeout(()=>{console.error('Bridge test timed out');bridge?.close();app.exit(1);},90000).unref();
+setTimeout(()=>{console.error('Bridge test timed out');bridge?.close();app.exit(1);},process.argv.includes('--game')?900000:90000).unref();

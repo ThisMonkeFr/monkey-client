@@ -589,7 +589,7 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
       <button class="tool stone" data-act="open-folder" title="Open game folder">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="square" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7.5A1.5 1.5 0 0 1 17.5 19h-13A1.5 1.5 0 0 1 3 17.5z"/></svg></button>
       <button class="tool stone" data-act="website" title="Project page">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="square" stroke-linejoin="round"><path d="M13.5 3.5 5 13h5l-1.5 7.5L18 11h-5z"/><circle cx="12" cy="12" r="9.2" stroke-dasharray="3.5 3"/></svg></button>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="square" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6.5h14M5 17.5h14"/></svg></button>
     </div>
     <div class="foot"><b>Monkey Client 0.10.0</b></div>
   </nav>
@@ -614,6 +614,7 @@ html.booting .rail .plaque:nth-child(5){animation-delay:160ms}
    Monkey Client — renderer
    ============================================================ */
 const IN_GAME=location.hash.startsWith('#game-');
+if(IN_GAME){document.body.classList.add('in-game');const style=document.createElement('style');style.textContent='.in-game .rail,.in-game .tb{display:none!important}.in-game #app{grid-template-columns:1fr;grid-template-rows:1fr}.in-game .main{grid-column:1;grid-row:1}.in-game .page{animation:none!important}.in-game .fr-layout.has-members{grid-template-columns:210px minmax(280px,1fr) 175px}';document.head.appendChild(style);}
 const DESKTOP = !!(window.monkey && window.monkey.desktop);
 let netConnected = false;
 
@@ -3475,6 +3476,7 @@ window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)lo
       else if(message) toast('MonkeyNet: '+message,'info');
     });
     window.monkey.net.onEvent(handleNetEvent);
+    netConnected=await window.monkey.net.connected();if(netConnected)await refreshNet();
     const handleUpdate=u=>{
       if(!u)return;
       const msg={available:`Update ${u.version} found — downloading…`,downloading:`Downloading update — ${u.percent}%`,ready:`Update ${u.version} is ready. Close the launcher to install it.`,current:'Monkey Client is up to date.',error:`Update check failed: ${u.message}`}[u.state];
@@ -3518,6 +3520,6 @@ window.addEventListener('focus',()=>{if(S.tab==='screenshots'&&!SHOTS.loading)lo
   }
   render();
   }catch(error){console.error(error);render();toast("Some launcher data could not load. "+error.message,"err");}
-  finally{await finishBoot();}
+  finally{if(IN_GAME)go(['friends','screenshots','skins'].includes(location.hash.slice(6))?location.hash.slice(6):'friends');await finishBoot();}
 })();
 </script>
