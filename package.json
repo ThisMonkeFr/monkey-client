@@ -1,6 +1,6 @@
 {
   "name": "monkey-client",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "A Minecraft launcher with a vanilla interface and integrated client modules",
   "main": "electron/main.js",
   "scripts": {
